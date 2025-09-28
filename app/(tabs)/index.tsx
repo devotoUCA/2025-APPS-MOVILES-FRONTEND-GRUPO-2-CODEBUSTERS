@@ -1,20 +1,22 @@
 // app/index.tsx
 import { Stack } from "expo-router";
 import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Chest from "../../components/chest";
 
-// Tabla de colores por jardín
+// Colores hardcodeados por jardín
 const gardenColors: Record<string, string> = {
   jungle: "#00FFAA",
-  peach: "#1adfedff",
-  valley: "#9ba0a0ff",
+  peach: "#1ADFED",
+  valley: "#9BA0A0",
+  desert: "#FFD700",
+  // agregar más según sea necesario
 };
 
 export default function HomeScreen() {
   const [chestVisible, setChestVisible] = useState(false);
 
-  // Imagen del jardín
+  // Imagen del jardín actual
   const gardenFile = "../../assets/Gardens/Jungle/jungle_1.png";
   const gardenSource = require("../../assets/Gardens/Jungle/jungle_1.png");
 
@@ -22,22 +24,22 @@ export default function HomeScreen() {
   const fileName = gardenFile.split("/").pop()?.replace(".png", "") || "";
   const [gardenName, gardenLevel] = fileName.split("_");
 
-  // Color dinámico según el jardín
+  // Color dinámico según el jardín (hardcodeado)
   const glowColor = gardenColors[gardenName] || "#FFFFFF";
 
   return (
     <View style={styles.container}>
-      {/* Ocultar header de Expo Router */}
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* Info superior izquierda */}
       <View style={styles.header}>
         <Text style={styles.appName}>MindGarden</Text>
-        <Text style={styles.gardenName}>{gardenName.toUpperCase()}</Text>
+        <Text style={styles.gardenName}>{gardenName?.toUpperCase()}</Text>
         <Text style={styles.gardenLevel}>Nivel {gardenLevel}</Text>
       </View>
 
-      {/* Contenedor con bordes redondeados + glow dinámico */}
-      <View style={[{ shadowColor: glowColor }, styles.gardenWrapper]}>
+      {/* Jardín con glow */}
+      <View style={[styles.gardenWrapper, { shadowColor: glowColor }]}>
         <Image
           source={gardenSource}
           style={styles.gardenImage}
@@ -45,12 +47,18 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Botón para abrir Chest */}
-      <TouchableOpacity style={styles.chestButton} onPress={() => setChestVisible(true)}>
-        <Text style={{ color: "white" }}>Inventario</Text>
-      </TouchableOpacity>
+      {/* Botón Inventario */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.chestButton,
+          pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 },
+        ]}
+        onPress={() => setChestVisible(true)}
+      >
+        <Text style={styles.chestText}>Inventario</Text>
+      </Pressable>
 
-      {/* Chest Modal */}
+      {/* Modal Inventario */}
       <Chest visible={chestVisible} onClose={() => setChestVisible(false)} />
     </View>
   );
@@ -70,12 +78,13 @@ const styles = StyleSheet.create({
   },
   appName: {
     color: "#00FFAA",
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
+    marginBottom: 4,
   },
   gardenName: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   gardenLevel: {
@@ -88,9 +97,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     overflow: "hidden",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowOpacity: 0.9,
+    shadowRadius: 25,
+    elevation: 30, // Android glow
   },
   gardenImage: {
     width: "100%",
@@ -100,8 +109,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 30,
     right: 20,
-    backgroundColor: "#795548",
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: "#4e342e",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 2, height: 2 },
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  chestText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

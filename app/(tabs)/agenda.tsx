@@ -1,5 +1,6 @@
 import Task, { TipoTarea } from "@/components/task";
 import { Picker } from '@react-native-picker/picker';
+import { Stack } from "expo-router";
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -31,6 +32,7 @@ const Agenda: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Input y Picker */}
       <View style={styles.inputContainer}>
         <TextInput

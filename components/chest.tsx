@@ -1,20 +1,28 @@
-// app/chest.tsx
-import React, { useEffect, useRef } from "react";
+// components/chest.tsx
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   Easing,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DraggableItem from "./draggableItem";
 
 const { width, height } = Dimensions.get("window");
 
-const inventory = [
+export type InventoryItem = {
+  id: string;
+  type: string;
+  quantity: number;
+  image: any;
+};
+
+const initialInventory: InventoryItem[] = [
   { id: "1", type: "agua", quantity: 2, image: require("../assets/Consumables/water.png") },
   { id: "2", type: "polvo", quantity: 3, image: require("../assets/Consumables/bone_powder.png") },
   { id: "3", type: "fertilizante", quantity: 1, image: require("../assets/Consumables/fertilizer.png") },
@@ -23,60 +31,80 @@ const inventory = [
 type ChestProps = {
   visible: boolean;
   onClose: () => void;
+  onUseItem: (item: InventoryItem) => void;
 };
 
-export default function Chest({ visible, onClose }: ChestProps) {
+export default function Chest({ visible, onClose, onUseItem }: ChestProps) {
+  const [inventory, setInventory] = useState(initialInventory);
   const slideAnim = useRef(new Animated.Value(height)).current;
+  const { bottom } = useSafeAreaInsets();
 
   const imageSize = width * 0.15;
-  const verticalPadding = 80; // espacio extra arriba y abajo
+  const verticalPadding = 80;
   const modalHeight = imageSize + verticalPadding;
 
-  useEffect(() => {
-    if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: height - modalHeight - 30, // espacio inferior para el navegador
-        duration: 300,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    } else {
+  const slideIn = useCallback(() => {
+    Animated.timing(slideAnim, {
+      toValue: height - modalHeight - (bottom + 30),
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [bottom, modalHeight]);
+
+  const slideOut = useCallback(
+    (callback?: () => void) => {
       Animated.timing(slideAnim, {
         toValue: height,
         duration: 300,
         easing: Easing.in(Easing.ease),
         useNativeDriver: false,
-      }).start();
-    }
+      }).start(() => {
+        slideAnim.setValue(height);
+        callback?.();
+      });
+    },
+    [slideAnim]
+  );
+
+  useEffect(() => {
+    if (visible) slideIn();
+    else slideOut();
   }, [visible]);
+
+  const handleDrop = (item: InventoryItem) => {
+    if (item.quantity > 0) {
+      setInventory((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+        )
+      );
+      onUseItem(item);
+    }
+  };
 
   if (!visible) return null;
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {/* Backdrop semi-transparente */}
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      {/* Fondo oscuro al abrir el inventario */}
+      <Pressable style={styles.backdrop} onPress={() => slideOut(onClose)} />
 
-      {/* Modal tipo carrusel */}
-      <Animated.View style={[styles.modalContent, { top: slideAnim, height: modalHeight }]}>
+      {/* Contenedor animado del inventario */}
+      <Animated.View
+        style={[styles.modalContent, { top: slideAnim, height: modalHeight }]}
+      >
         <Text style={styles.modalTitle}>Inventario</Text>
+
         <FlatList
           horizontal
-          data={inventory}
+          data={inventory.filter((i) => i.quantity > 0)} // 🔹 solo ítems con stock
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.flatList}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.itemContainer}>
-              <Image
-                source={item.image}
-                style={[styles.itemImage, styles.imageBorder]}
-                resizeMode="contain"
-              />
-              {/* Contador encima de la imagen */}
-              <View style={styles.quantityBadge}>
-                <Text style={styles.quantityText}>{item.quantity}</Text>
-              </View>
+            <View style={styles.itemWrapper}>
+              <DraggableItem item={item} onDrop={handleDrop} />
             </View>
           )}
         />
@@ -91,14 +119,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
   },
   modalContent: {
-    position: "absolute",
     left: 0,
     right: 0,
     backgroundColor: "#111",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 10,
-    justifyContent: "center", // centra verticalmente el contenido
+    justifyContent: "center",
   },
   modalTitle: {
     color: "#fff",
@@ -109,34 +136,9 @@ const styles = StyleSheet.create({
   },
   flatList: {
     paddingHorizontal: 5,
-    alignItems: "center", // centra verticalmente cada item del FlatList
-  },
-  itemContainer: {
-    marginHorizontal: 8,
-    justifyContent: "center", // centra la imagen dentro de su contenedor
     alignItems: "center",
   },
-  itemImage: {
-    width: width * 0.15,
-    height: width * 0.15,
-  },
-  imageBorder: {
-    borderWidth: 2,
-    borderColor: "#00FFAA",
-    borderRadius: 8,
-  },
-  quantityBadge: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: "#00FFAA",
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  quantityText: {
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: 10,
+  itemWrapper: {
+    zIndex: 1,
   },
 });

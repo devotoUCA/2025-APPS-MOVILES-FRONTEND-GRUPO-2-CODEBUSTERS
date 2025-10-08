@@ -1,12 +1,12 @@
 import React, { useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Image,
-    PanResponder,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  PanResponder,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { InventoryItem } from "./chest";
 
@@ -34,12 +34,12 @@ export default function DraggableItem({ item, onDrop }: DraggableItemProps) {
           Animated.spring(scale, {
             toValue: 1.1,
             friction: 4,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(lift, {
             toValue: -10,
             duration: 120,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start();
       },
@@ -61,12 +61,12 @@ export default function DraggableItem({ item, onDrop }: DraggableItemProps) {
           Animated.spring(scale, {
             toValue: 1,
             friction: 5,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(lift, {
             toValue: 0,
             duration: 150,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start(() => setDragging(false));
       },

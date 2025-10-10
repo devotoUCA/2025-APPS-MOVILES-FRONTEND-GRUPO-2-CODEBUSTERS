@@ -1,14 +1,21 @@
 import Task, { TipoTarea } from "@/components/task";
-import { Picker } from '@react-native-picker/picker';
-import { Stack } from "expo-router";
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface TaskItem {
   id: string;
   titulo: string;
   tipo: TipoTarea;
+  completada: boolean;
 }
+
+const CATEGORIAS = [
+  { tipo: 'Productividad', icon: 'briefcase', libreria: 'FontAwesome', color: '#4a90e2' },
+  { tipo: 'Alimentación', icon: 'cutlery', libreria: 'FontAwesome', color: '#f5a623' },
+  { tipo: 'Ejercicio', icon: 'heartbeat', libreria: 'FontAwesome', color: '#d0021b' },
+  { tipo: 'SaludMental', icon: 'yoga', libreria: 'MaterialCommunityIcons', color: '#9013fe' },
+] as const;
 
 const Agenda: React.FC = () => {
   const [tareas, setTareas] = useState<TaskItem[]>([]);
@@ -17,12 +24,8 @@ const Agenda: React.FC = () => {
 
   const agregarTarea = () => {
     if (input.trim() === '') return;
-    const nuevaTarea: TaskItem = {
-      id: Date.now().toString(),
-      titulo: input,
-      tipo,
-    };
-    setTareas([...tareas, nuevaTarea]);
+    const nuevaTarea: TaskItem = { id: Date.now().toString(), titulo: input, tipo, completada: false };
+    setTareas([nuevaTarea, ...tareas]);
     setInput('');
   };
 
@@ -30,40 +33,44 @@ const Agenda: React.FC = () => {
     setTareas(tareas.filter(t => t.id !== id));
   };
 
+  const toggleCompletada = (id: string) => {
+    setTareas(tareas.map(t => (t.id === id ? { ...t, completada: !t.completada } : t)));
+  };
+
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      {/* Input y Picker */}
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Nueva tarea"
-          placeholderTextColor="#AAA"
+          placeholder="Escribe una nueva tarea..."
+          placeholderTextColor="#777"
           value={input}
           onChangeText={setInput}
         />
-
-        <View style={styles.input}>
-          <Picker
-            selectedValue={tipo}
-            style={styles.picker}
-            dropdownIconColor="#00FFAA"
-            onValueChange={(itemValue) => setTipo(itemValue as TipoTarea)}
-          >
-            <Picker.Item label="Productividad" value="Productividad" />
-            <Picker.Item label="Alimentación" value="Alimentación" />
-            <Picker.Item label="Ejercicio" value="Ejercicio" />
-            <Picker.Item label="Salud Mental" value="SaludMental" />
-          </Picker>
+        <View style={styles.selectorCategoria}>
+          {CATEGORIAS.map((cat) => (
+            <TouchableOpacity
+              key={cat.tipo}
+              style={[
+                styles.iconoCategoria,
+                tipo === cat.tipo && { backgroundColor: cat.color, borderColor: '#FFF' }
+              ]}
+              onPress={() => setTipo(cat.tipo)}
+            >
+              {cat.libreria === 'FontAwesome' && (
+                <FontAwesome name={cat.icon as any} size={20} color="#FFF" />
+              )}
+              {cat.libreria === 'MaterialCommunityIcons' && (
+                <MaterialCommunityIcons name={cat.icon as any} size={24} color="#FFF" />
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
-
-        {/* Botón “Agregar” estilizado */}
         <TouchableOpacity style={styles.botonAgregar} onPress={agregarTarea}>
-          <Text style={styles.textoBoton}>Agregar</Text>
+          <Text style={styles.textoBoton}>Agregar Tarea</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Lista de tareas */}
       <FlatList
         data={tareas}
         keyExtractor={(item) => item.id}
@@ -71,8 +78,8 @@ const Agenda: React.FC = () => {
           <Task
             titulo={item.titulo}
             tipo={item.tipo}
-            completada={false}
-            onToggle={() => eliminarTarea(item.id)}
+            completada={item.completada}
+            onToggle={() => toggleCompletada(item.id)}
             onEliminar={() => eliminarTarea(item.id)}
           />
         )}
@@ -82,48 +89,13 @@ const Agenda: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginTop: 40,
-    backgroundColor: '#000',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#00FFAA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 50,
-    marginRight: 5,
-    color: '#FFF',
-    justifyContent: 'center',
-    backgroundColor: '#222',
-  },
-  picker: {
-    color: '#FFF',
-    height: 50,
-    width: '100%',
-  },
-  botonAgregar: {
-    height: 50,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    backgroundColor: '#222',
-    borderWidth: 1,
-    borderColor: '#00FFAA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textoBoton: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, paddingTop: 20, backgroundColor: '#121212' },
+  inputContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  input: { backgroundColor: '#2C2C2E', borderWidth: 1, borderColor: '#3A3A3C', borderRadius: 10, paddingHorizontal: 15, height: 50, color: '#FFF', fontSize: 16, marginBottom: 15 },
+  selectorCategoria: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 },
+  iconoCategoria: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2C2C2E', borderWidth: 2, borderColor: 'transparent' },
+  botonAgregar: { height: 50, borderRadius: 10, backgroundColor: '#00FFAA', justifyContent: 'center', alignItems: 'center' },
+  textoBoton: { color: '#000', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default Agenda;

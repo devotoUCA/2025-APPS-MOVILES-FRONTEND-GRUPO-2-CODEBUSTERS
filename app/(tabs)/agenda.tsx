@@ -89,7 +89,7 @@ const Agenda: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 20, backgroundColor: '#121212' },
+  container: { flex: 1, paddingTop: 80, backgroundColor: '#121212' },
   inputContainer: { paddingHorizontal: 20, marginBottom: 20 },
   input: { backgroundColor: '#2C2C2E', borderWidth: 1, borderColor: '#3A3A3C', borderRadius: 10, paddingHorizontal: 15, height: 50, color: '#FFF', fontSize: 16, marginBottom: 15 },
   selectorCategoria: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 },

@@ -1,14 +1,8 @@
 import Task, { TipoTarea } from "@/components/task";
+import { useTasks } from '@/hooks/useTasks';
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-interface TaskItem {
-  id: string;
-  titulo: string;
-  tipo: TipoTarea;
-  completada: boolean;
-}
 
 const CATEGORIAS = [
   { tipo: 'Productividad', icon: 'briefcase', libreria: 'FontAwesome', color: '#4a90e2' },
@@ -18,23 +12,23 @@ const CATEGORIAS = [
 ] as const;
 
 const Agenda: React.FC = () => {
-  const [tareas, setTareas] = useState<TaskItem[]>([]);
+  const { tasks, addTask } = useTasks();
   const [input, setInput] = useState<string>('');
   const [tipo, setTipo] = useState<TipoTarea>('Productividad');
 
-  const agregarTarea = () => {
+  const agregarTarea = async () => {
     if (input.trim() === '') return;
-    const nuevaTarea: TaskItem = { id: Date.now().toString(), titulo: input, tipo, completada: false };
-    setTareas([nuevaTarea, ...tareas]);
+    
+    await addTask(input, tipo);
     setInput('');
   };
 
-  const eliminarTarea = (id: string) => {
-    setTareas(tareas.filter(t => t.id !== id));
+  const eliminarTarea = (id: number) => {
+    // Por ahora solo elimina localmente, después podés agregar DELETE al backend
   };
 
-  const toggleCompletada = (id: string) => {
-    setTareas(tareas.map(t => (t.id === id ? { ...t, completada: !t.completada } : t)));
+  const toggleCompletada = (id: number) => {
+    // Por ahora solo local, después podés agregar PUT al backend
   };
 
   return (
@@ -72,15 +66,15 @@ const Agenda: React.FC = () => {
         </TouchableOpacity>
       </View>
       <FlatList
-        data={tareas}
-        keyExtractor={(item) => item.id}
+        data={tasks}
+        keyExtractor={(item) => item.task_id.toString()}
         renderItem={({ item }) => (
           <Task
             titulo={item.titulo}
             tipo={item.tipo}
-            completada={item.completada}
-            onToggle={() => toggleCompletada(item.id)}
-            onEliminar={() => eliminarTarea(item.id)}
+            completada={item.completed_flag}
+            onToggle={() => toggleCompletada(item.task_id)}
+            onEliminar={() => eliminarTarea(item.task_id)}
           />
         )}
       />

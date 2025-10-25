@@ -1,50 +1,112 @@
-# Welcome to your Expo app 👋
+# MindGarden Frontend 🌱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil de gestión de tareas y bienestar desarrollada con Expo y React Native.
 
-## Get started
+## 🚀 Instalación
 
-1. Install dependencies
+### 1. Instalar dependencias
+```bash
+npm install
+```
 
-   ```bash
-   npm install
-   ```
+### 2. Configurar conexión con el backend
 
-2. Start the app
+Antes de iniciar la app, necesitás configurar la URL del backend en el archivo `config/api.ts`.
 
-   ```bash
-   npx expo start
-   ```
+**Si usás Expo Go en tu celular:**
 
-In the output, you'll find options to open the app in a
+1. Abrí el archivo `config/api.ts`
+2. Cambiá `192.168.0.184` por la **IP de tu computadora**
+3. Para saber tu IP:
+   - **Windows**: Abrí CMD y ejecutá `ipconfig` (buscá "IPv4")
+   - **Mac/Linux**: Abrí Terminal y ejecutá `ifconfig` (buscá "inet")
+```typescript
+// config/api.ts
+const API_CONFIG = {
+  BASE_URL: 'http://TU_IP_AQUI:3000/api', // Ejemplo: http://192.168.1.100:3000/api
+};
+```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+⚠️ **Importante:** Tu celular y tu computadora deben estar en la misma red WiFi.
+
+**Si usás un emulador:**
+
+- **Android**: podés usar `http://10.0.2.2:3000/api`
+- **iOS**: podés usar `http://localhost:3000/api`
+
+### 3. Iniciar el servidor backend
+
+Antes de correr el frontend, asegurate de tener el backend corriendo. En la carpeta del backend ejecutá:
+```bash
+npm run dev
+```
+
+### 4. Iniciar la app
+```bash
+npx expo start
+```
+
+En la terminal verás opciones para abrir la app en:
+
+- [Expo Go](https://expo.dev/go) (recomendado para desarrollo rápido)
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [Development build](https://docs.expo.dev/develop/development-builds/introduction/)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📱 Desarrollo
 
-## Get a fresh project
+Podés empezar a desarrollar editando los archivos dentro del directorio **app**. Este proyecto usa [file-based routing](https://docs.expo.dev/router/introduction).
 
-When you're ready, run:
+## 🗂️ Estructura principal
+```
+├── app/
+│   └── (tabs)/
+│       └── agenda.tsx      # Pantalla de tareas
+├── components/
+│   └── task.tsx            # Componente de tarea
+├── hooks/
+│   └── useTasks.ts         # Lógica de conexión con backend
+└── config/
+    └── api.ts              # ⚙️ Configuración de URL del backend
+```
 
+## 🔄 Reiniciar el proyecto
+
+Si querés empezar con un proyecto limpio:
 ```bash
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Este comando mueve el código inicial a **app-example** y crea un directorio **app** vacío.
 
-## Learn more
+## ❓ Problemas comunes
 
-To learn more about developing your project with Expo, look at the following resources:
+### La app no se conecta al backend
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Verificá que el backend esté corriendo (`npm run dev` en la carpeta del backend)
+2. Revisá que la IP en `config/api.ts` sea correcta
+3. Asegurate de que tu celular y tu compu estén en la misma WiFi
+4. Probá abrir `http://TU_IP:3000/api/tasks` en el navegador de tu celular
 
-## Join the community
+### No veo las tareas
 
-Join our community of developers creating universal apps.
+1. Verificá que el backend tenga datos (ejecutá `npm run seed` en el backend)
+2. Recargá la app (presioná `r` en la terminal de Expo)
+3. Revisá la consola de Expo para ver si hay errores
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📚 Recursos
+
+- [Documentación de Expo](https://docs.expo.dev/)
+- [Tutorial de Expo](https://docs.expo.dev/tutorial/introduction/)
+- [Expo en GitHub](https://github.com/expo/expo)
+- [Discord de Expo](https://chat.expo.dev)
+
+## 👥 Equipo
+
+**Grupo 2 - CodeBusters**  
+Universidad Católica Argentina  
+Programación de Aplicaciones Móviles - 2025
+
+---
+
+💡 **Tip:** Mantené tanto el backend como el frontend corriendo al mismo tiempo en terminales separadas.

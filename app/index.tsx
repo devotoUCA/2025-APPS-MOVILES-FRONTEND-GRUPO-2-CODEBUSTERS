@@ -1,22 +1,37 @@
-// app/index.tsx
+import { restoreSession } from "@/redux/actions/authActions";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function AppEntry() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // simula estado de sesión
+  const dispatch = useDispatch();
+  const { isLoggedIn, isLoading } = useSelector((state: any) => state.auth);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Intentar restaurar sesión desde AsyncStorage
+    const init = async () => {
+      await dispatch(restoreSession() as any);
+      // Pequeño delay para asegurar que todo esté montado
+      setTimeout(() => {
+        setIsReady(true);
+      }, 100);
+    };
+    
+    init();
+  }, []);
+
+  useEffect(() => {
+    // Redirigir solo cuando esté listo
+    if (isReady && !isLoading) {
       if (isLoggedIn) {
         router.replace("/(tabs)");
       } else {
         router.replace("/(auth)/signin");
       }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [isLoggedIn]);
+    }
+  }, [isLoggedIn, isLoading, isReady]);
 
   return (
     <View style={styles.loadingContainer}>

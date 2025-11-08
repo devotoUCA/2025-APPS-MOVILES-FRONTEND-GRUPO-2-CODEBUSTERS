@@ -1,6 +1,8 @@
+import { logout } from "@/redux/actions/authActions";
 import React, { useState } from "react";
 import {
   Alert,
+  FlatList,
   Modal,
   Pressable,
   StyleSheet,
@@ -8,8 +10,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  FlatList,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 
 type Option = { label: string; value: string };
 
@@ -23,7 +25,6 @@ const MODE_OPTIONS: Option[] = [
   { label: "Cover", value: "cover" },
   { label: "Contain", value: "contain" },
 ];
-
 
 function OptionPicker({
   label,
@@ -43,7 +44,6 @@ function OptionPicker({
     <View style={{ marginTop: 16 }}>
       <Text style={styles.label}>{label}</Text>
 
-      {/* “Campo” visual */}
       <TouchableOpacity
         style={styles.inputLike}
         activeOpacity={0.7}
@@ -52,10 +52,8 @@ function OptionPicker({
         <Text style={styles.inputLikeText}>{current || "Elegir..."}</Text>
       </TouchableOpacity>
 
-      {/* Modal con lista de opciones */}
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          {/* empty to close when tapping outside */}
         </Pressable>
 
         <View style={styles.modalCard}>
@@ -98,9 +96,29 @@ function OptionPicker({
 }
 
 export default function SettingsScreen() {
-  const [nombre, setNombre] = useState("Tincho");
+  const dispatch = useDispatch();
+  const { player } = useSelector((state: any) => state.auth);
+  
+  const [nombre, setNombre] = useState(player?.player_name || "Usuario");
   const [jardin, setJardin] = useState<string>("jungle");
   const [modoImagen, setModoImagen] = useState<string>("cover");
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Estás seguro que querés salir?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Salir",
+          style: "destructive",
+          onPress: () => {
+            dispatch(logout() as any);
+          },
+        },
+      ]
+    );
+  };
 
   const handleReset = () => {
     Alert.alert(
@@ -112,7 +130,6 @@ export default function SettingsScreen() {
           text: "Aceptar",
           style: "destructive",
           onPress: () => {
-            
             setNombre("Tincho");
             setJardin("jungle");
             setModoImagen("cover");
@@ -126,7 +143,14 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
 
-      {}
+      {/* Mostrar email del usuario logueado */}
+      {player?.email && (
+        <View style={styles.userInfo}>
+          <Text style={styles.userInfoLabel}>Email:</Text>
+          <Text style={styles.userInfoText}>{player.email}</Text>
+        </View>
+      )}
+
       <Text style={styles.label}>Nombre de usuario</Text>
       <TextInput
         style={styles.input}
@@ -136,7 +160,6 @@ export default function SettingsScreen() {
         placeholderTextColor="#AAA"
       />
 
-      {}
       <OptionPicker
         label="Tipo de jardín"
         value={jardin}
@@ -151,12 +174,15 @@ export default function SettingsScreen() {
         onChange={setModoImagen}
       />
 
+      {/* Botón de Logout */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
+
       {/* Reset */}
       <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
         <Text style={styles.resetText}>Resetear progreso</Text>
       </TouchableOpacity>
-
-      {}
     </View>
   );
 }
@@ -173,6 +199,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
     marginTop: 40,
+  },
+  userInfo: {
+    backgroundColor: "#1A1A1A",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#00FFAA40",
+  },
+  userInfoLabel: {
+    color: "#00FFAA",
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  userInfoText: {
+    color: "#FFF",
+    fontSize: 16,
   },
   label: {
     color: "#FFF",
@@ -200,8 +243,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
   },
-
-  
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -258,10 +299,19 @@ const styles = StyleSheet.create({
     color: "#00FFAA",
     fontWeight: "600",
   },
-
-  
-  resetBtn: {
+  logoutBtn: {
     marginTop: 28,
+    backgroundColor: "#FF9500",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#FFF",
+    fontWeight: "bold",
+  },
+  resetBtn: {
+    marginTop: 12,
     backgroundColor: "#FF6347",
     paddingVertical: 12,
     borderRadius: 10,

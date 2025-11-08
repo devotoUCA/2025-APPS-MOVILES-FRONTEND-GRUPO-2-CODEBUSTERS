@@ -3,7 +3,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useContext, useState } from "react";
 import { Alert, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { InventoryContext } from "./InventoryContext";
+import { InventoryContext } from "../../contexts/InventoryContext";
 
 const CATEGORIAS = [
   { tipo: "Productividad", icon: "briefcase", libreria: "FontAwesome", color: "#4a90e2" },

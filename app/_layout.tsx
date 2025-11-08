@@ -1,11 +1,14 @@
-// app/_layout.tsx
+import { InventoryProvider } from "@/contexts/InventoryContext";
+import store from "@/redux/store";
 import { Slot } from "expo-router";
-import { InventoryProvider } from "./(tabs)/InventoryContext";
+import { Provider } from "react-redux";
 
 export default function RootLayout() {
   return (
-    <InventoryProvider>
-      <Slot />
-    </InventoryProvider>
+    <Provider store={store}>
+      <InventoryProvider>
+        <Slot />
+      </InventoryProvider>
+    </Provider>
   );
 }

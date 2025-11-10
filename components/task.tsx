@@ -64,7 +64,7 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           }}
         >
           <FontAwesome name="check-circle" size={26} color="#FFF" />
-          <Text style={styles.actionText}>Completar</Text>
+          <Text style={styles.actionText}>Completa</Text>
         </RectButton>
       </Animated.View>
     );

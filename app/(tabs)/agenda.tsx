@@ -201,7 +201,7 @@ const Agenda: React.FC = () => {
           <View style={styles.instructionContainer}>
             <FontAwesome name="hand-o-right" size={14} color="#666" />
             <Text style={styles.instructionText}>
-              Desliza → completar • Desliza ← eliminar
+              Desliza para completar y eliminar
             </Text>
           </View>
         )}

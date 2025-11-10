@@ -10,9 +10,8 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -22,11 +21,6 @@ const GARDEN_OPTIONS: Option[] = [
   { label: "Jungle", value: "jungle" },
   { label: "Peach", value: "peach" },
   { label: "Valley", value: "valley" },
-];
-
-const MODE_OPTIONS: Option[] = [
-  { label: "Cover", value: "cover" },
-  { label: "Contain", value: "contain" },
 ];
 
 // Componente OptionPicker
@@ -89,9 +83,7 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const { player } = useSelector((state: any) => state.auth);
   
-  const [nombre, setNombre] = useState(player?.player_name || "Usuario");
   const [jardin, setJardin] = useState<string>(player?.current_garden?.garden_name || "jungle");
-  const [modoImagen, setModoImagen] = useState<string>("cover");
 
   const handleLogout = () => {
     Alert.alert(
@@ -155,22 +147,6 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleReset = () => {
-    Alert.alert(
-      "¿Reiniciar progreso?",
-      "Esto reiniciará tu jardín actual a Nivel 1 con 0/3 de progreso.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Aceptar",
-          style: "destructive",
-          onPress: () => {
-            saveLevelToBackend(1, player.current_garden_id, 0);
-          },
-        },
-      ]
-    );
-  };
 
   const saveLevelToBackend = async (newLevel: number, activeGardenId: number, progressValue: number) => {
     try {
@@ -193,6 +169,13 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
 
+      {player?.player_name && (
+        <View style={styles.userInfo}>
+          <Text style={styles.userInfoLabel}>Nombre:</Text>
+          <Text style={styles.userInfoText}>{player.player_name}</Text>
+        </View>
+      )}
+
       {player?.email && (
         <View style={styles.userInfo}>
           <Text style={styles.userInfoLabel}>Email:</Text>
@@ -200,14 +183,8 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      <Text style={styles.label}>Nombre de usuario</Text>
-      <TextInput
-        style={styles.input}
-        value={nombre}
-        onChangeText={setNombre}
-        placeholder="Escribí tu nombre"
-        placeholderTextColor="#AAA"
-      />
+      
+
 
       <OptionPicker
         label="Tipo de jardín"
@@ -215,20 +192,12 @@ export default function SettingsScreen() {
         options={GARDEN_OPTIONS}
         onChange={handleGardenChange} 
       />
-      <OptionPicker
-        label="Modo de imagen"
-        value={modoImagen}
-        options={MODE_OPTIONS}
-        onChange={setModoImagen}
-      />
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-        <Text style={styles.resetText}>Resetear progreso actual</Text>
-      </TouchableOpacity>
+      
     </View>
   );
 }
@@ -347,7 +316,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     marginTop: 28,
-    backgroundColor: "#FF9500",
+    backgroundColor: "#cd312eff",
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",

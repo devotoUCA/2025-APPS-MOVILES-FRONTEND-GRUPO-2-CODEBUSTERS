@@ -1,4 +1,4 @@
-// app/(tabs)/settings.tsx (CÓDIGO COMPLETO Y CORREGIDO)
+// app/(tabs)/settings.tsx (CON ADVERTENCIA DE RESET AL CAMBIAR JARDÍN)
 
 import API_CONFIG from '@/config/api';
 import { logout, updatePlayerData } from "@/redux/actions/authActions";
@@ -29,7 +29,7 @@ const MODE_OPTIONS: Option[] = [
   { label: "Contain", value: "contain" },
 ];
 
-// Componente OptionPicker (Debe estar aquí)
+// Componente OptionPicker
 function OptionPicker({
   label,
   value,
@@ -84,8 +84,6 @@ function OptionPicker({
     </View>
   );
 }
-// --- Fin del componente OptionPicker ---
-
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
@@ -112,69 +110,84 @@ export default function SettingsScreen() {
     );
   };
 
+  // ✅ MODIFICADO: Ahora muestra advertencia sobre el reset
   const handleGardenChange = async (newGardenName: string) => {
     if (!player) return;
 
-    // No actualiza el estado local (setJardin) hasta que el backend responde
-    
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/garden`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gardenName: newGardenName }),
-      });
+    // Si es el mismo jardín, no hacer nada
+    if (newGardenName === jardin) return;
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Error al guardar el jardín');
-      }
+    // ✅ Mostrar advertencia de que se reseteará
+    Alert.alert(
+      "⚠️ Cambiar de jardín",
+      `Al cambiar a ${newGardenName.toUpperCase()}, el jardín volverá al nivel 1 con 0/3 de progreso.\n\n¿Continuar?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Cambiar",
+          style: "default",
+          onPress: async () => {
+            try {
+              const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/garden`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gardenName: newGardenName }),
+              });
 
-      const data = await response.json();
-      if (data.success) {
-        dispatch(updatePlayerData(data.player) as any);
-        setJardin(data.player.current_garden.garden_name);
-        Alert.alert("¡Jardín actualizado!", `Has cambiado a ${newGardenName}.`);
-      }
-    } catch (error: any) {
-      console.error("Error al cambiar de jardín:", error);
-      Alert.alert("Error", error.message || "No se pudo cambiar el jardín.");
-    }
+              if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Error al guardar el jardín');
+              }
+
+              const data = await response.json();
+              if (data.success) {
+                dispatch(updatePlayerData(data.player) as any);
+                setJardin(data.player.current_garden.garden_name);
+                Alert.alert("✅ Jardín actualizado", `Has cambiado a ${newGardenName.toUpperCase()} nivel 1.`);
+              }
+            } catch (error: any) {
+              console.error("Error al cambiar de jardín:", error);
+              Alert.alert("Error", error.message || "No se pudo cambiar el jardín.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleReset = () => {
     Alert.alert(
       "¿Reiniciar progreso?",
-      "Esto reiniciará tu jardín actual a Nivel 1.",
+      "Esto reiniciará tu jardín actual a Nivel 1 con 0/3 de progreso.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Aceptar",
           style: "destructive",
           onPress: () => {
-            saveLevelToBackend(1, player.current_garden_id);
+            saveLevelToBackend(1, player.current_garden_id, 0);
           },
         },
       ]
     );
   };
 
-  const saveLevelToBackend = async (newLevel: number, activeGardenId: number) => {
+  const saveLevelToBackend = async (newLevel: number, activeGardenId: number, progressValue: number) => {
     try {
       const responseLvl = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId }),
+        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId, progress: progressValue }),
       });
       if (!responseLvl.ok) throw new Error("Error al resetear");
       
       const data = await responseLvl.json();
       dispatch(updatePlayerData(data.player) as any);
-      Alert.alert("¡Progreso Reiniciado!", "Tu jardín actual ha vuelto al Nivel 1.");
+      Alert.alert("✅ Progreso Reiniciado", "Tu jardín actual ha vuelto al Nivel 1.");
     } catch (error: any) {
       Alert.alert("Error", "No se pudo resetear el progreso.");
     }
   };
-
 
   return (
     <View style={styles.container}>
@@ -214,13 +227,12 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-        <Text style={styles.resetText}>Resetear progreso</Text>
+        <Text style={styles.resetText}>Resetear progreso actual</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ✅ ¡AQUÍ ESTÁ EL BLOQUE DE ESTILOS QUE FALTABA!
 const styles = StyleSheet.create({
   container: {
     flex: 1,

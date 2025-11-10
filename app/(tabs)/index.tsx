@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx (VERSIÓN FINAL CORREGIDA - PROGRESO Y PERSISTENCIA)
+// app/(tabs)/index.tsx (CON PERSISTENCIA DE PROGRESO INTERMEDIO)
 
 import API_CONFIG from '@/config/api';
 import { updatePlayerData } from "@/redux/actions/authActions";
@@ -67,7 +67,7 @@ export default function HomeScreen() {
   const currentProgress = findGardenProgress(player, gardenId);
 
   const [level, setLevel] = useState(currentProgress?.level || 1);
-  const [progress, setProgress] = useState(0); 
+  const [progress, setProgress] = useState(currentProgress?.progress || 0); // ✅ LEE EL PROGRESO DESDE REDUX
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [maxLevelReached, setMaxLevelReached] = useState(level >= 5);
 
@@ -86,24 +86,28 @@ export default function HomeScreen() {
     right: width * 0.925,
   };
 
-  // ✅ SOLUCIÓN: Solo actualizar el nivel cuando realmente cambió el jardín o su nivel
-  // NO resetear el progreso parcial en cada cambio de player
+  // ✅ Actualiza nivel Y progreso cuando cambia en Redux
   useEffect(() => {
-    const progress = findGardenProgress(player, player?.current_garden?.garden_id);
-    const newLevel = progress?.level || 1;
+    const gardenProgress = findGardenProgress(player, player?.current_garden?.garden_id);
+    const newLevel = gardenProgress?.level || 1;
+    const newProgress = gardenProgress?.progress || 0;
     
-    // Solo actualizar si el nivel realmente cambió
-    setLevel((currentLevel: number) => {
+    setLevel((currentLevel:number) => {
       if (currentLevel !== newLevel) {
         console.log(`🔄 Nivel actualizado desde Redux: ${currentLevel} -> ${newLevel}`);
-        // Solo cuando hay un cambio real de nivel, reseteamos el progreso
-        setProgress(0);
+        setProgress(newProgress); // Actualiza el progreso al cambiar de nivel
         setMaxLevelReached(newLevel >= 5);
         return newLevel;
       }
       return currentLevel;
     });
-  }, [player?.current_garden?.garden_id, currentProgress?.level]); // ✅ Dependencias más específicas 
+
+    // Si el nivel no cambió, pero el progreso sí, actualizarlo
+    if (newProgress !== progress) {
+      console.log(`📊 Progreso restaurado desde Redux: ${newProgress}/3`);
+      setProgress(newProgress);
+    }
+  }, [player?.current_garden?.garden_id, currentProgress?.level, currentProgress?.progress]);
 
 
   if (!inventoryContext) return null;
@@ -134,7 +138,6 @@ export default function HomeScreen() {
   };
   // --- Fin Animaciones ---
 
-  // ✅ FUNCIÓN CORREGIDA: Actualiza progreso PRIMERO, luego sincroniza con backend
   const handleItemDrop = async (
     item: InventoryItem,
     dropX: number,
@@ -159,20 +162,25 @@ export default function HomeScreen() {
       try {
         const consumableId = parseInt(item.id);
         
-        // ✅ CLAVE: Actualizamos el progreso PRIMERO (para UI inmediata)
-        console.log("📊 Actualizando progreso...");
-        setProgress((prev) => {
-          const newProgress = prev + 1;
-          console.log(`Progreso: ${prev} -> ${newProgress}`);
+        // ✅ Calculamos el nuevo progreso
+        let newProgress = 0;
+        let levelUp = false;
+
+        setProgress((prev:number) => {
+          newProgress = prev + 1;
+          console.log(`📊 Actualizando progreso: ${prev} -> ${newProgress}`);
           
           if (newProgress >= 3) {
             console.log("🎉 ¡3 items usados! Subiendo nivel...");
+            levelUp = true;
+            
             setLevel((currentLevel: number) => { 
               const newLevel = currentLevel + 1;
               
               if (currentLevel < 5) {
                 playLevelUpAnimation();
-                saveLevelToBackend(newLevel, gardenId); 
+                // Cuando sube de nivel, guardamos nivel + progress en 0
+                saveLevelToBackend(newLevel, gardenId, 0);
                 return newLevel;
               } else {
                 setMaxLevelReached(true);
@@ -184,8 +192,7 @@ export default function HomeScreen() {
           return newProgress;
         });
 
-        // Ahora sincronizamos con el backend
-        console.log("💾 Guardando en backend...");
+        // Primero actualizamos el inventario
         const responseInv = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -193,19 +200,21 @@ export default function HomeScreen() {
         });
         
         if (!responseInv.ok) {
-          const errorText = await responseInv.text();
-          console.error("❌ Error del servidor:", errorText);
+          console.error("❌ Error del servidor al guardar inventario");
           throw new Error("Error guardando inventario");
         }
         
         const data = await responseInv.json();
         
-        // ✅ Actualizar Redux (el InventoryContext se sincroniza automáticamente)
+        // Actualizar Redux
         if (data.success && data.player) {
           dispatch(updatePlayerData(data.player) as any);
           console.log("✅ Redux actualizado correctamente");
-        } else {
-          console.error("❌ Respuesta del backend sin player:", data);
+        }
+
+        // ✅ Si NO subió de nivel, guardamos el progreso intermedio
+        if (!levelUp && newProgress < 3) {
+          await saveProgressToBackend(newProgress, gardenId);
         }
 
         return true;
@@ -220,27 +229,52 @@ export default function HomeScreen() {
     return false; 
   };
 
-  const saveLevelToBackend = async (newLevel: number, activeGardenId: number) => {
+  // ✅ NUEVA FUNCIÓN: Guarda solo el progreso intermedio
+  const saveProgressToBackend = async (progressValue: number, activeGardenId: number) => {
     try {
-      console.log(`💾 Guardando Nivel ${newLevel} para Jardín ID ${activeGardenId}...`);
-      const responseLvl = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
+      console.log(`💾 Guardando progreso intermedio ${progressValue}/3 para Jardín ID ${activeGardenId}...`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress-only`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId }),
+        body: JSON.stringify({ progress: progressValue, gardenId: activeGardenId }),
       });
 
-      if (!responseLvl.ok) {
-        const err = await responseLvl.json();
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Error al guardar el progreso.");
+      }
+      
+      const data = await response.json();
+      dispatch(updatePlayerData(data.player) as any);
+      console.log(`✅ Progreso ${progressValue}/3 guardado exitosamente.`);
+
+    } catch (error: any) {
+      console.error("❌ Error al guardar el progreso:", error.message);
+    }
+  };
+
+  // Guarda el nivel (cuando sube de nivel)
+  const saveLevelToBackend = async (newLevel: number, activeGardenId: number, progressValue: number) => {
+    try {
+      console.log(`💾 Guardando Nivel ${newLevel} con progreso ${progressValue}/3 para Jardín ID ${activeGardenId}...`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId, progress: progressValue }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
         throw new Error(err.error || "Error del backend al guardar el nivel.");
       }
       
-      const data = await responseLvl.json();
+      const data = await response.json();
       dispatch(updatePlayerData(data.player) as any);
       console.log(`✅ Nivel ${newLevel} guardado exitosamente.`);
 
     } catch (error: any) {
       console.error("❌ Error al guardar el nivel:", error.message);
-      Alert.alert("Error de guardado", `No se pudo guardar tu nuevo nivel (${newLevel}). El progreso se perderá al reiniciar. \nError: ${error.message}`);
+      Alert.alert("Error de guardado", `No se pudo guardar tu nuevo nivel (${newLevel}). El progreso se perderá al reiniciar.`);
     }
   };
 

@@ -1,12 +1,13 @@
-// app/(tabs)/agenda.tsx (CÓDIGO COMPLETO Y CORREGIDO)
+// app/(tabs)/agenda.tsx (CÓDIGO CORREGIDO - PERSISTENCIA DE INVENTARIO)
 
 import Task, { TipoTarea } from "@/components/task";
 import API_CONFIG from '@/config/api';
 import { useTasks } from "@/hooks/useTasks";
+import { updatePlayerData } from "@/redux/actions/authActions"; // ✅ Importar la acción
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useContext, useState } from "react";
 import { Alert, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // ✅ Importar useDispatch
 import { InventoryContext, InventoryItem } from "../../contexts/InventoryContext";
 
 const CATEGORIAS = [
@@ -23,6 +24,7 @@ const Agenda: React.FC = () => {
   const [tipo, setTipo] = useState<TipoTarea>("Productividad");
   const inventoryContext = useContext(InventoryContext);
   const { player } = useSelector((state: any) => state.auth); 
+  const dispatch = useDispatch(); // ✅ Hook para despachar acciones
 
   if (!inventoryContext) return null;
   const { inventory, setInventory } = inventoryContext;
@@ -33,7 +35,7 @@ const Agenda: React.FC = () => {
     setInput("");
   };
 
-  // 1. Esta función es para COMPLETAR (da recompensa)
+  // ✅ FUNCIÓN CORREGIDA: Ahora actualiza Redux
   const handleTaskCompletion = async (id: number) => { 
     console.log("Iniciando handleTaskCompletion (con recompensa)...");
 
@@ -52,8 +54,6 @@ const Agenda: React.FC = () => {
     ];
     const random = consumibles[Math.floor(Math.random() * consumibles.length)];
 
-    // 2. ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
-    //    El 'catch (error)' ahora está escrito correctamente.
     try {
       console.log(`Enviando +1 de '${random.name}' (ID: ${random.id}) al backend...`);
       
@@ -68,6 +68,15 @@ const Agenda: React.FC = () => {
         throw new Error(err.error || 'Error del backend al dar recompensa');
       }
 
+      const data = await response.json();
+      
+      // ✅ CAMBIO CRÍTICO 1: Actualizar Redux con el player completo del backend
+      if (data.success && data.player) {
+        dispatch(updatePlayerData(data.player) as any);
+        console.log("✅ Redux actualizado con inventario persistido");
+      }
+
+      // ✅ CAMBIO CRÍTICO 2: Actualizar estado local del inventario
       setInventory((prev: InventoryItem[]) => {
         const itemInInventory = prev.find(item => item.id === random.id.toString());
         if (itemInInventory) {
@@ -86,13 +95,13 @@ const Agenda: React.FC = () => {
       
       deleteTask(id);
 
-    } catch (error: any) { // <- 'error' (sin la S)
+    } catch (error: any) {
       console.error("Error en handleTaskCompletion:", error.message || error);
       Alert.alert("Error", "No se pudo completar la tarea. Revisa la consola.");
     }
   };
 
-  // 3. Esta función es para BORRAR (sin recompensa)
+  // Esta función es para BORRAR (sin recompensa)
   const handleTaskDelete = async (id: number) => {
     console.log("Iniciando handleTaskDelete (sin recompensa)...");
     await deleteTask(id);
@@ -150,7 +159,6 @@ const Agenda: React.FC = () => {
   );
 };
 
-// --- Estilos (sin cambios) ---
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 80, backgroundColor: "#121212" },
   inputContainer: { paddingHorizontal: 20, marginBottom: 20 },

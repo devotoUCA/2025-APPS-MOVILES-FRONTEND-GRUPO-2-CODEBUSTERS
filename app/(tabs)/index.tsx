@@ -1,6 +1,11 @@
+// app/(tabs)/index.tsx (CÓDIGO COMPLETO Y CORREGIDO)
+
+import API_CONFIG from '@/config/api';
+import { updatePlayerData } from "@/redux/actions/authActions";
 import { Stack } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -9,77 +14,74 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useDispatch, useSelector } from 'react-redux';
 import DraggableInventory from "../../components/DraggableInventory";
+import { InventoryContext, InventoryItem } from "../../contexts/InventoryContext";
 
-const { width, height } = Dimensions.get("window"); // ✅ Declaración única
+const { width, height } = Dimensions.get("window");
 
+// --- Definiciones ---
 const gardenColors: Record<string, string> = {
   jungle: "#00FFAA",
-  peach: "#1ADFED",
-  valley: "#9BA0A0",
+  peach: "#FFC0CB", 
+  valley: "#87CEEB", 
   desert: "#FFD700",
 };
 
+// 1. ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
+//    Actualizado para usar tus carpetas e imágenes reales
 const gardenImages: Record<string, any> = {
   jungle_1: require("../../assets/Gardens/Jungle/jungle_1.png"),
   jungle_2: require("../../assets/Gardens/Jungle/jungle_2.png"),
   jungle_3: require("../../assets/Gardens/Jungle/jungle_3.png"),
   jungle_4: require("../../assets/Gardens/Jungle/jungle_4.png"),
   jungle_5: require("../../assets/Gardens/Jungle/jungle_5.png"),
-  desert_1: require("../../assets/Gardens/Desert/desert_1.png"),
-  desert_2: require("../../assets/Gardens/Desert/desert_2.png"),
-  desert_3: require("../../assets/Gardens/Desert/desert_3.png"),
+  
+  peach_1: require("../../assets/Gardens/Peach/peach_1.png"), 
+  peach_2: require("../../assets/Gardens/Peach/peach_2.png"), 
+  peach_3: require("../../assets/Gardens/Peach/peach_3.png"), 
+  peach_4: require("../../assets/Gardens/Peach/peach_4.png"), 
+  peach_5: require("../../assets/Gardens/Peach/peach_5.png"), 
+  
+  valley_1: require("../../assets/Gardens/Valley/valley_1.png"), 
+  valley_2: require("../../assets/Gardens/Valley/valley_2.png"), 
+  valley_3: require("../../assets/Gardens/Valley/valley_3.png"), // <-- Corregido
+  valley_4: require("../../assets/Gardens/Valley/valley_4.png"), // <-- Corregido
+  valley_5: require("../../assets/Gardens/Valley/valley_5.png"), // <-- Corregido
+};
+// --- Fin Definiciones ---
+
+
+// Función Helper para buscar el progreso
+const findGardenProgress = (player: any, gardenId: number) => {
+  if (!player || !player.GardenProgress) return null;
+  return player.GardenProgress.find((p: any) => p.garden_id === gardenId);
 };
 
-export type InventoryItem = {
-  id: string;
-  type: string;
-  quantity: number;
-  image: any;
-};
-
-const initialInventory: InventoryItem[] = [
-  {
-    id: "1",
-    type: "agua",
-    quantity: 6,
-    image: require("../../assets/Consumables/water.png"),
-  },
-  {
-    id: "2",
-    type: "polvo",
-    quantity: 6,
-    image: require("../../assets/Consumables/bone_powder.png"),
-  },
-  {
-    id: "3",
-    type: "fertilizante",
-    quantity: 6,
-    image: require("../../assets/Consumables/fertilizer.png"),
-  },
-];
 
 export default function HomeScreen() {
-  const [inventory, setInventory] = useState(initialInventory);
-  const [progress, setProgress] = useState(0);
-  const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [level, setLevel] = useState(1);
-  const [maxLevelReached, setMaxLevelReached] = useState(false);
+  const inventoryContext = useContext(InventoryContext);
+  const { player } = useSelector((state: any) => state.auth); 
+  const dispatch = useDispatch(); 
 
-  // Animaciones base
+  const gardenName = player?.current_garden?.garden_name || "jungle";
+  const gardenId = player?.current_garden?.garden_id || 1;
+  const currentProgress = findGardenProgress(player, gardenId);
+
+  const [level, setLevel] = useState(currentProgress?.level || 1);
+  const [progress, setProgress] = useState(0); 
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [maxLevelReached, setMaxLevelReached] = useState(level >= 5);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const gardenScaleAnim = useRef(new Animated.Value(1)).current;
   const evolveAnim = useRef(new Animated.Value(0)).current;
 
-  const gardenFile = "../../assets/Gardens/Jungle/jungle_1.png";
-  const fileName = gardenFile.split("/").pop()?.replace(".png", "") || "";
-  const [gardenName] = fileName.split("_");
-
   const glowColor = gardenColors[gardenName] || "#FFFFFF";
   const currentKey = `${gardenName}_${level}`;
-  const gardenSource = gardenImages[currentKey] || gardenImages["jungle_1"];
-
-  // Área del jardín
+  // 2. ✅ Esta lógica ahora encontrará la imagen correcta
+  const gardenSource = gardenImages[currentKey] || gardenImages[`${gardenName}_1`] || gardenImages["jungle_1"];
+  
   const gardenBounds = {
     top: height * 0.25,
     bottom: height * 0.65,
@@ -87,38 +89,33 @@ export default function HomeScreen() {
     right: width * 0.925,
   };
 
-  // Animación de éxito
-  const playSuccessAnimation = () => {
+  useEffect(() => {
+    const progress = findGardenProgress(player, player?.current_garden?.garden_id);
+    const newLevel = progress?.level || 1;
+    setLevel(newLevel);
+    setMaxLevelReached(newLevel >= 5);
+    setProgress(0); 
+  }, [player]); 
+
+
+  if (!inventoryContext) return null;
+  const { inventory, setInventory } = inventoryContext;
+  
+  // --- Animaciones ---
+  const playSuccessAnimation = () => { 
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(gardenScaleAnim, {
-          toValue: 1.05,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 200, useNativeDriver: true }),
+        Animated.timing(gardenScaleAnim, { toValue: 1.05, duration: 200, useNativeDriver: true }),
       ]),
       Animated.parallel([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(gardenScaleAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(gardenScaleAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]),
     ]).start();
   };
-
-  // Animación especial (evolución de 6 segundos)
-  const playLevelUpAnimation = () => {
+  
+  const playLevelUpAnimation = () => { 
     evolveAnim.setValue(0);
     Animated.timing(evolveAnim, {
       toValue: 1,
@@ -127,60 +124,100 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   };
+  // --- Fin Animaciones ---
 
-  // Manejo del drop con tope de nivel
-  const handleItemDrop = (
+  const handleItemDrop = async (
     item: InventoryItem,
     dropX: number,
     dropY: number
-  ) => {
+  ): Promise<boolean> => { 
+    
     const isInsideGarden =
       dropX >= gardenBounds.left &&
       dropX <= gardenBounds.right &&
       dropY >= gardenBounds.top &&
       dropY <= gardenBounds.bottom;
 
-    // Si ya está en el nivel máximo, bloquear consumo
     if (level >= 5) {
       setMaxLevelReached(true);
-      return false;
+      return false; 
     }
 
     if (isInsideGarden && item.quantity > 0) {
       playSuccessAnimation();
 
-      // Consumir ítem solo si no está en el nivel máximo
-      setInventory((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
-        )
-      );
+      try {
+        const consumableId = parseInt(item.id);
+        const responseInv = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ consumableId: consumableId, quantity: -1 }), 
+        });
+        if (!responseInv.ok) throw new Error("Error guardando inventario");
+        
+        setInventory((prev: InventoryItem[]) =>
+          prev.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+          )
+        );
 
-      // Actualizar progreso y nivel
-      setProgress((prev) => {
-        const newProgress = prev + 1;
-        if (newProgress >= 3) {
-          setLevel((lvl) => {
-            if (lvl < 5) {
-              playLevelUpAnimation();
-              return lvl + 1;
-            } else {
-              setMaxLevelReached(true);
-              return lvl;
-            }
-          });
-          return 0;
-        }
-        return newProgress;
-      });
+        setProgress((prev) => {
+          const newProgress = prev + 1;
+          if (newProgress >= 3) {
+            
+            setLevel((currentLevel: number) => { 
+              const newLevel = currentLevel + 1;
+              
+              if (currentLevel < 5) {
+                playLevelUpAnimation();
+                saveLevelToBackend(newLevel, gardenId); 
+                return newLevel;
+              } else {
+                setMaxLevelReached(true);
+                return currentLevel;
+              }
+            });
+            return 0;
+          }
+          return newProgress;
+        });
 
-      return true;
+        return true;
+      } catch (error) {
+        console.error("Error en handleItemDrop (fetch inventario):", error);
+        return false;
+      }
     }
-
-    return false;
+    
+    return false; 
   };
 
-  // Efectos visuales de evolución
+  const saveLevelToBackend = async (newLevel: number, activeGardenId: number) => {
+    try {
+      console.log(`Guardando Nivel ${newLevel} para Jardín ID ${activeGardenId}...`);
+      const responseLvl = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId }),
+      });
+
+      if (!responseLvl.ok) {
+        const err = await responseLvl.json();
+        throw new Error(err.error || "Error del backend al guardar el nivel.");
+      }
+      
+      const data = await responseLvl.json();
+      dispatch(updatePlayerData(data.player) as any);
+      console.log(`Nivel ${newLevel} guardado exitosamente.`);
+
+    } catch (error: any) {
+      console.error("Error al guardar el nivel:", error.message);
+      Alert.alert("Error de guardado", `No se pudo guardar tu nuevo nivel (${newLevel}). El progreso se perderá al reiniciar. \nError: ${error.message}`);
+    }
+  };
+
+
+  // --- Render ---
   const evolveOpacity = evolveAnim.interpolate({
     inputRange: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 1],
     outputRange: [0, 1, 0.2, 1, 0.3, 1, 0],
@@ -195,14 +232,12 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.appName}>MindGarden</Text>
         <Text style={styles.gardenName}>{gardenName?.toUpperCase()}</Text>
         <Text style={styles.gardenLevel}>Nivel {level}</Text>
       </View>
 
-      {/* Jardín */}
       <View
         style={[
           styles.gardenContainer,
@@ -221,10 +256,10 @@ export default function HomeScreen() {
           ]}
         >
           <Animated.Image
-            source={gardenSource}
+            source={gardenSource} 
             style={[
               styles.gardenImage,
-              { transform: [{ scale: evolveScale }] },
+              { transform: [{ scale: evolveScale }] }, 
             ]}
             resizeMode="contain"
           />
@@ -232,8 +267,8 @@ export default function HomeScreen() {
             style={[
               StyleSheet.absoluteFill,
               {
-                backgroundColor: "#00FFAA",
-                opacity: evolveOpacity,
+                backgroundColor: glowColor,
+                opacity: evolveOpacity, 
                 borderRadius: 30,
               },
             ]}
@@ -241,7 +276,6 @@ export default function HomeScreen() {
         </Animated.View>
       </View>
 
-      {/* Barra de progreso */}
       <View style={styles.progressBarContainer}>
         <View
           style={[styles.progressFill, { width: `${(progress / 3) * 100}%` }]}
@@ -251,7 +285,6 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Botón de inventario */}
       <TouchableOpacity
         style={styles.inventoryButton}
         onPress={() => setInventoryOpen(!inventoryOpen)}
@@ -262,7 +295,6 @@ export default function HomeScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Inventario arrastrable */}
       <DraggableInventory
         inventory={inventory}
         isOpen={inventoryOpen}
@@ -273,6 +305,7 @@ export default function HomeScreen() {
   );
 }
 
+// --- Estilos (sin cambios) ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
   header: { position: "absolute", top: 40, left: 20, zIndex: 10 },

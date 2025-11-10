@@ -1,3 +1,5 @@
+// redux/actions/authActions.ts (CÓDIGO COMPLETO Y CORREGIDO)
+
 import API_CONFIG from '@/config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -9,7 +11,8 @@ import {
   REGISTER_FAILURE,
   REGISTER_PENDING,
   REGISTER_SUCCESS,
-  RESTORE_SESSION
+  RESTORE_SESSION,
+  UPDATE_PLAYER_DATA // 1. Importa la acción de actualizar
 } from '../actionTypes/authActionTypes';
 
 export function login(email: string, password: string) {
@@ -17,6 +20,7 @@ export function login(email: string, password: string) {
     dispatch({ type: LOGIN_PENDING });
     
     try {
+      // 2. Llama al backend (asegúrate de que authController.ts esté actualizado)
       const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -28,7 +32,7 @@ export function login(email: string, password: string) {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Guardar sesión en AsyncStorage
+        // 3. Guarda el 'player' (que ahora incluye nivel e inventario)
         await AsyncStorage.setItem('player', JSON.stringify(data.player));
         dispatch({ type: LOGIN_SUCCESS, payload: data.player });
         
@@ -50,6 +54,7 @@ export function register(email: string, password: string, player_name: string) {
     dispatch({ type: REGISTER_PENDING });
     
     try {
+      // 4. Llama al backend (asegúrate de que authController.ts esté actualizado)
       const response = await fetch(`${API_CONFIG.BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
@@ -61,11 +66,9 @@ export function register(email: string, password: string, player_name: string) {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Guardar sesión en AsyncStorage
         await AsyncStorage.setItem('player', JSON.stringify(data.player));
         dispatch({ type: REGISTER_SUCCESS, payload: data.player });
         
-        // Redirigir a las tabs
         setTimeout(() => {
           router.replace("/(tabs)");
         }, 100);
@@ -83,22 +86,40 @@ export function logout() {
     await AsyncStorage.removeItem('player');
     dispatch({ type: LOGOUT });
     
-    // Redirigir al login
     setTimeout(() => {
       router.replace("/(auth)/signin");
     }, 100);
   };
 }
 
+// 5. ✅ ¡AQUÍ ESTÁ LA FUNCIÓN QUE FALTA!
+//    Esta es la función que _layout.tsx está buscando.
 export function restoreSession() {
   return async (dispatch: any) => {
     try {
       const playerData = await AsyncStorage.getItem('player');
       if (playerData) {
         dispatch({ type: RESTORE_SESSION, payload: JSON.parse(playerData) });
+      } else {
+        // Si no hay datos, igual avisa que terminaste de cargar (con payload null)
+        dispatch({ type: RESTORE_SESSION, payload: null });
       }
     } catch (error) {
       console.error('Error al restaurar sesión:', error);
+      dispatch({ type: RESTORE_SESSION, payload: null });
+    }
+  };
+}
+
+// 6. ✅ Y LA OTRA FUNCIÓN que creamos
+// Actualiza el 'player' en Redux Y en AsyncStorage
+export function updatePlayerData(playerData: any) {
+  return async (dispatch: any) => {
+    try {
+      await AsyncStorage.setItem('player', JSON.stringify(playerData));
+      dispatch({ type: UPDATE_PLAYER_DATA, payload: playerData });
+    } catch (error) {
+      console.error("Error al actualizar player data:", error);
     }
   };
 }

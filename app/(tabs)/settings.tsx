@@ -1,4 +1,7 @@
-import { logout } from "@/redux/actions/authActions";
+// app/(tabs)/settings.tsx (CÓDIGO COMPLETO Y CORREGIDO)
+
+import API_CONFIG from '@/config/api';
+import { logout, updatePlayerData } from "@/redux/actions/authActions";
 import React, { useState } from "react";
 import {
   Alert,
@@ -26,6 +29,7 @@ const MODE_OPTIONS: Option[] = [
   { label: "Contain", value: "contain" },
 ];
 
+// Componente OptionPicker (Debe estar aquí)
 function OptionPicker({
   label,
   value,
@@ -43,7 +47,6 @@ function OptionPicker({
   return (
     <View style={{ marginTop: 16 }}>
       <Text style={styles.label}>{label}</Text>
-
       <TouchableOpacity
         style={styles.inputLike}
         activeOpacity={0.7}
@@ -51,41 +54,28 @@ function OptionPicker({
       >
         <Text style={styles.inputLikeText}>{current || "Elegir..."}</Text>
       </TouchableOpacity>
-
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-        </Pressable>
-
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}></Pressable>
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>{label}</Text>
-
           <FlatList
             data={options}
             keyExtractor={(item) => item.value}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[
-                  styles.optionRow,
-                  item.value === value && styles.optionRowActive,
-                ]}
+                style={[ styles.optionRow, item.value === value && styles.optionRowActive ]}
                 onPress={() => {
                   onChange(item.value);
                   setOpen(false);
                 }}
               >
-                <Text
-                  style={[
-                    styles.optionText,
-                    item.value === value && styles.optionTextActive,
-                  ]}
-                >
+                <Text style={[ styles.optionText, item.value === value && styles.optionTextActive ]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
             )}
           />
-
           <TouchableOpacity style={styles.modalClose} onPress={() => setOpen(false)}>
             <Text style={styles.modalCloseText}>Cerrar</Text>
           </TouchableOpacity>
@@ -94,13 +84,15 @@ function OptionPicker({
     </View>
   );
 }
+// --- Fin del componente OptionPicker ---
+
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
   const { player } = useSelector((state: any) => state.auth);
   
   const [nombre, setNombre] = useState(player?.player_name || "Usuario");
-  const [jardin, setJardin] = useState<string>("jungle");
+  const [jardin, setJardin] = useState<string>(player?.current_garden?.garden_name || "jungle");
   const [modoImagen, setModoImagen] = useState<string>("cover");
 
   const handleLogout = () => {
@@ -120,30 +112,74 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleGardenChange = async (newGardenName: string) => {
+    if (!player) return;
+
+    // No actualiza el estado local (setJardin) hasta que el backend responde
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/garden`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gardenName: newGardenName }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Error al guardar el jardín');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        dispatch(updatePlayerData(data.player) as any);
+        setJardin(data.player.current_garden.garden_name);
+        Alert.alert("¡Jardín actualizado!", `Has cambiado a ${newGardenName}.`);
+      }
+    } catch (error: any) {
+      console.error("Error al cambiar de jardín:", error);
+      Alert.alert("Error", error.message || "No se pudo cambiar el jardín.");
+    }
+  };
+
   const handleReset = () => {
     Alert.alert(
       "¿Reiniciar progreso?",
-      "Esta acción eliminará todos tus datos actuales.",
+      "Esto reiniciará tu jardín actual a Nivel 1.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Aceptar",
           style: "destructive",
           onPress: () => {
-            setNombre("Tincho");
-            setJardin("jungle");
-            setModoImagen("cover");
+            saveLevelToBackend(1, player.current_garden_id);
           },
         },
       ]
     );
   };
 
+  const saveLevelToBackend = async (newLevel: number, activeGardenId: number) => {
+    try {
+      const responseLvl = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: newLevel, gardenId: activeGardenId }),
+      });
+      if (!responseLvl.ok) throw new Error("Error al resetear");
+      
+      const data = await responseLvl.json();
+      dispatch(updatePlayerData(data.player) as any);
+      Alert.alert("¡Progreso Reiniciado!", "Tu jardín actual ha vuelto al Nivel 1.");
+    } catch (error: any) {
+      Alert.alert("Error", "No se pudo resetear el progreso.");
+    }
+  };
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
 
-      {/* Mostrar email del usuario logueado */}
       {player?.email && (
         <View style={styles.userInfo}>
           <Text style={styles.userInfoLabel}>Email:</Text>
@@ -164,9 +200,8 @@ export default function SettingsScreen() {
         label="Tipo de jardín"
         value={jardin}
         options={GARDEN_OPTIONS}
-        onChange={setJardin}
+        onChange={handleGardenChange} 
       />
-
       <OptionPicker
         label="Modo de imagen"
         value={modoImagen}
@@ -174,12 +209,10 @@ export default function SettingsScreen() {
         onChange={setModoImagen}
       />
 
-      {/* Botón de Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
       </TouchableOpacity>
 
-      {/* Reset */}
       <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
         <Text style={styles.resetText}>Resetear progreso</Text>
       </TouchableOpacity>
@@ -187,6 +220,7 @@ export default function SettingsScreen() {
   );
 }
 
+// ✅ ¡AQUÍ ESTÁ EL BLOQUE DE ESTILOS QUE FALTABA!
 const styles = StyleSheet.create({
   container: {
     flex: 1,

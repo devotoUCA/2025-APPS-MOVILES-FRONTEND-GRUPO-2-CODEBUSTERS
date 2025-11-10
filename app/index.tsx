@@ -1,38 +1,14 @@
-import { restoreSession } from "@/redux/actions/authActions";
-import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+// app/index.tsx (EL SPINNER - CÓDIGO FINAL)
+
+import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
 
+/**
+ * Esta es la pantalla de carga por defecto.
+ * _layout.tsx la mostrará gracias al <Slot />
+ * mientras 'restoreSession' está en curso.
+ */
 export default function AppEntry() {
-  const dispatch = useDispatch();
-  const { isLoggedIn, isLoading } = useSelector((state: any) => state.auth);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    // Intentar restaurar sesión desde AsyncStorage
-    const init = async () => {
-      await dispatch(restoreSession() as any);
-      // Pequeño delay para asegurar que todo esté montado
-      setTimeout(() => {
-        setIsReady(true);
-      }, 100);
-    };
-    
-    init();
-  }, []);
-
-  useEffect(() => {
-    // Redirigir solo cuando esté listo
-    if (isReady && !isLoading) {
-      if (isLoggedIn) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/(auth)/signin");
-      }
-    }
-  }, [isLoggedIn, isLoading, isReady]);
-
   return (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color="#00FFAA" />

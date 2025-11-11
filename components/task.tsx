@@ -1,5 +1,3 @@
-// components/task.tsx (SWIPE ROBUSTO CON GESTURE-HANDLER)
-
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
@@ -46,7 +44,6 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
   const categoryConfig = CATEGORIAS_CONFIG[tipo];
   const swipeableRef = React.useRef<Swipeable>(null);
 
-  // Renderiza la acción de la DERECHA (completar)
   const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const trans = dragX.interpolate({
       inputRange: [-100, 0],
@@ -70,7 +67,6 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
     );
   };
 
-  // Renderiza la acción de la IZQUIERDA (eliminar)
   const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const trans = dragX.interpolate({
       inputRange: [0, 100],
@@ -111,7 +107,7 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           { backgroundColor: categoryConfig.color }
         ]}
       >
-        {/* Icono de categoría */}
+        
         <View style={[styles.iconContainer, { backgroundColor: categoryConfig.colorClaro }]}>
           {categoryConfig.libreria === "FontAwesome" && (
             <FontAwesome name={categoryConfig.icon as any} size={22} color="#FFF" />
@@ -121,7 +117,7 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           )}
         </View>
 
-        {/* Contenido */}
+        
         <View style={styles.taskContent}>
           <Text style={styles.taskTitle} numberOfLines={2}>
             {titulo}
@@ -129,7 +125,7 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           <Text style={styles.taskCategory}>{tipo}</Text>
         </View>
 
-        {/* Indicador de swipe */}
+        
         <View style={styles.swipeIndicator}>
           <FontAwesome name="angle-left" size={16} color="rgba(255,255,255,0.4)" />
           <FontAwesome name="angle-right" size={16} color="rgba(255,255,255,0.4)" />

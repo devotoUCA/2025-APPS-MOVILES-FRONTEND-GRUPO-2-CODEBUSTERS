@@ -1,5 +1,3 @@
-// app/(tabs)/index.tsx (CON PERSISTENCIA DE PROGRESO INTERMEDIO)
-
 import API_CONFIG from '@/config/api';
 import { updatePlayerData } from "@/redux/actions/authActions";
 import { Stack } from "expo-router";
@@ -20,7 +18,7 @@ import { InventoryContext, InventoryItem } from "../../contexts/InventoryContext
 
 const { width, height } = Dimensions.get("window");
 
-// --- Definiciones ---
+
 const gardenColors: Record<string, string> = {
   jungle: "#00FFAA",
   peach: "#FFC0CB", 
@@ -47,10 +45,7 @@ const gardenImages: Record<string, any> = {
   valley_4: require("../../assets/Gardens/Valley/valley_4.png"),
   valley_5: require("../../assets/Gardens/Valley/valley_5.png"),
 };
-// --- Fin Definiciones ---
 
-
-// Función Helper para buscar el progreso
 const findGardenProgress = (player: any, gardenId: number) => {
   if (!player || !player.GardenProgress) return null;
   return player.GardenProgress.find((p: any) => p.garden_id === gardenId);
@@ -67,7 +62,7 @@ export default function HomeScreen() {
   const currentProgress = findGardenProgress(player, gardenId);
 
   const [level, setLevel] = useState(currentProgress?.level || 1);
-  const [progress, setProgress] = useState(currentProgress?.progress || 0); // ✅ LEE EL PROGRESO DESDE REDUX
+  const [progress, setProgress] = useState(currentProgress?.progress || 0); 
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [maxLevelReached, setMaxLevelReached] = useState(level >= 5);
 
@@ -86,7 +81,7 @@ export default function HomeScreen() {
     right: width * 0.925,
   };
 
-  // ✅ Actualiza nivel Y progreso cuando cambia en Redux
+  
   useEffect(() => {
     const gardenProgress = findGardenProgress(player, player?.current_garden?.garden_id);
     const newLevel = gardenProgress?.level || 1;
@@ -94,17 +89,15 @@ export default function HomeScreen() {
     
     setLevel((currentLevel:number) => {
       if (currentLevel !== newLevel) {
-        console.log(`🔄 Nivel actualizado desde Redux: ${currentLevel} -> ${newLevel}`);
-        setProgress(newProgress); // Actualiza el progreso al cambiar de nivel
+        setProgress(newProgress); 
         setMaxLevelReached(newLevel >= 5);
         return newLevel;
       }
       return currentLevel;
     });
 
-    // Si el nivel no cambió, pero el progreso sí, actualizarlo
+    
     if (newProgress !== progress) {
-      console.log(`📊 Progreso restaurado desde Redux: ${newProgress}/3`);
       setProgress(newProgress);
     }
   }, [player?.current_garden?.garden_id, currentProgress?.level, currentProgress?.progress]);
@@ -136,7 +129,7 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   };
-  // --- Fin Animaciones ---
+  
 
   const handleItemDrop = async (
     item: InventoryItem,
@@ -162,16 +155,14 @@ export default function HomeScreen() {
       try {
         const consumableId = parseInt(item.id);
         
-        // ✅ Calculamos el nuevo progreso
+        
         let newProgress = 0;
         let levelUp = false;
 
         setProgress((prev:number) => {
           newProgress = prev + 1;
-          console.log(`📊 Actualizando progreso: ${prev} -> ${newProgress}`);
           
           if (newProgress >= 3) {
-            console.log("🎉 ¡3 items usados! Subiendo nivel...");
             levelUp = true;
             
             setLevel((currentLevel: number) => { 
@@ -179,7 +170,7 @@ export default function HomeScreen() {
               
               if (currentLevel < 5) {
                 playLevelUpAnimation();
-                // Cuando sube de nivel, guardamos nivel + progress en 0
+                
                 saveLevelToBackend(newLevel, gardenId, 0);
                 return newLevel;
               } else {
@@ -187,12 +178,12 @@ export default function HomeScreen() {
                 return currentLevel;
               }
             });
-            return 0; // Reset progress
+            return 0; 
           }
           return newProgress;
         });
 
-        // Primero actualizamos el inventario
+        
         const responseInv = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -200,19 +191,17 @@ export default function HomeScreen() {
         });
         
         if (!responseInv.ok) {
-          console.error("❌ Error del servidor al guardar inventario");
           throw new Error("Error guardando inventario");
         }
         
         const data = await responseInv.json();
         
-        // Actualizar Redux
+        
         if (data.success && data.player) {
           dispatch(updatePlayerData(data.player) as any);
-          console.log("✅ Redux actualizado correctamente");
         }
 
-        // ✅ Si NO subió de nivel, guardamos el progreso intermedio
+        
         if (!levelUp && newProgress < 3) {
           await saveProgressToBackend(newProgress, gardenId);
         }
@@ -220,7 +209,6 @@ export default function HomeScreen() {
         return true;
         
       } catch (error: any) {
-        console.error("❌ Error en handleItemDrop:", error.message || error);
         Alert.alert("Error", "No se pudo usar el consumible. Verifica tu conexión.");
         return false;
       }
@@ -229,10 +217,9 @@ export default function HomeScreen() {
     return false; 
   };
 
-  // ✅ NUEVA FUNCIÓN: Guarda solo el progreso intermedio
+  
   const saveProgressToBackend = async (progressValue: number, activeGardenId: number) => {
     try {
-      console.log(`💾 Guardando progreso intermedio ${progressValue}/3 para Jardín ID ${activeGardenId}...`);
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress-only`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -246,17 +233,14 @@ export default function HomeScreen() {
       
       const data = await response.json();
       dispatch(updatePlayerData(data.player) as any);
-      console.log(`✅ Progreso ${progressValue}/3 guardado exitosamente.`);
 
     } catch (error: any) {
-      console.error("❌ Error al guardar el progreso:", error.message);
     }
   };
 
-  // Guarda el nivel (cuando sube de nivel)
+  
   const saveLevelToBackend = async (newLevel: number, activeGardenId: number, progressValue: number) => {
     try {
-      console.log(`💾 Guardando Nivel ${newLevel} con progreso ${progressValue}/3 para Jardín ID ${activeGardenId}...`);
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/progress`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -270,16 +254,14 @@ export default function HomeScreen() {
       
       const data = await response.json();
       dispatch(updatePlayerData(data.player) as any);
-      console.log(`✅ Nivel ${newLevel} guardado exitosamente.`);
 
     } catch (error: any) {
-      console.error("❌ Error al guardar el nivel:", error.message);
       Alert.alert("Error de guardado", `No se pudo guardar tu nuevo nivel (${newLevel}). El progreso se perderá al reiniciar.`);
     }
   };
 
 
-  // --- Render ---
+  
   const evolveOpacity = evolveAnim.interpolate({
     inputRange: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 1],
     outputRange: [0, 1, 0.2, 1, 0.3, 1, 0],
@@ -295,7 +277,8 @@ export default function HomeScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Text style={styles.appName}>MindGarden</Text>
+        
+        <Text style={styles.appName}>🌱 MindGarden</Text>
         <Text style={styles.gardenName}>{gardenName?.toUpperCase()}</Text>
         <Text style={styles.gardenLevel}>Nivel {level}</Text>
       </View>
@@ -367,13 +350,13 @@ export default function HomeScreen() {
   );
 }
 
-// --- Estilos ---
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
-  header: { position: "absolute", top: 40, left: 20, zIndex: 10 },
-  appName: { color: "#00FFAA", fontSize: 20, fontWeight: "bold", marginBottom: 4 },
-  gardenName: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  gardenLevel: { color: "#aaa", fontSize: 14 },
+  container: { flex: 1, backgroundColor: "#000"},
+  header: { position: "absolute", top: 60, left: 20, zIndex: 10 },
+  appName: { color: "#00FFAA", fontSize: 30, fontWeight: "bold", marginBottom: 4 },
+  gardenName: { color: "#fff", fontSize: 22, fontWeight: "bold", marginTop: 10},
+  gardenLevel: { color: "#aaa", fontSize: 18 },
   gardenContainer: {
     position: "absolute",
     left: 0,
@@ -437,4 +420,5 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   inventoryButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  
 });

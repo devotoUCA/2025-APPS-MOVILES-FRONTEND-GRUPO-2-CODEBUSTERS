@@ -1,5 +1,3 @@
-// app/(tabs)/agenda.tsx (CON GESTURE-HANDLER ROBUSTO)
-
 import Task, { TipoTarea } from "@/components/task";
 import API_CONFIG from '@/config/api';
 import { useTasks } from "@/hooks/useTasks";
@@ -40,7 +38,7 @@ const Agenda: React.FC = () => {
   if (!inventoryContext) return null;
   const { inventory, setInventory } = inventoryContext;
 
-  // ============= LÓGICA ORIGINAL (NO MODIFICADA) =============
+
   const agregarTarea = async () => {
     if (input.trim() === "") return;
     await addTask(input, tipo);
@@ -48,13 +46,11 @@ const Agenda: React.FC = () => {
   };
 
   const handleTaskCompletion = async (id: number) => { 
-    console.log("Iniciando handleTaskCompletion (con recompensa)...");
 
     const taskExists = tasks.find(t => t.task_id === id);
     if (!taskExists) return;
 
     if (!player || !player.player_id) {
-      console.error("¡ERROR FATAL! No hay 'player.player_id' en Redux.");
       return;
     }
 
@@ -66,7 +62,6 @@ const Agenda: React.FC = () => {
     const random = consumibles[Math.floor(Math.random() * consumibles.length)];
 
     try {
-      console.log(`Enviando +1 de '${random.name}' (ID: ${random.id}) al backend...`);
       
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
         method: 'POST',
@@ -83,7 +78,6 @@ const Agenda: React.FC = () => {
       
       if (data.success && data.player) {
         dispatch(updatePlayerData(data.player) as any);
-        console.log("✅ Redux actualizado con inventario persistido");
       }
 
       setInventory((prev: InventoryItem[]) => {
@@ -105,16 +99,14 @@ const Agenda: React.FC = () => {
       deleteTask(id);
 
     } catch (error: any) {
-      console.error("Error en handleTaskCompletion:", error.message || error);
       Alert.alert("Error", "No se pudo completar la tarea. Revisa la consola.");
     }
   };
 
   const handleTaskDelete = async (id: number) => {
-    console.log("Iniciando handleTaskDelete (sin recompensa)...");
     await deleteTask(id);
   };
-  // ============= FIN LÓGICA ORIGINAL =============
+
 
   const categoriaSeleccionada = CATEGORIAS.find(c => c.tipo === tipo);
 
@@ -126,7 +118,7 @@ const Agenda: React.FC = () => {
       >
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Mis Tareas</Text>
           <View style={styles.headerBadge}>
@@ -134,7 +126,7 @@ const Agenda: React.FC = () => {
           </View>
         </View>
 
-        {/* Input Container */}
+        
         <View style={styles.inputSection}>
           <View style={styles.inputWrapper}>
             <FontAwesome name="pencil" size={18} color="#00FFAA" style={styles.inputIcon} />
@@ -149,7 +141,7 @@ const Agenda: React.FC = () => {
             />
           </View>
 
-          {/* Selector de categoría */}
+          
           <View style={styles.categorySelector}>
             {CATEGORIAS.map((cat) => {
               const isSelected = tipo === cat.tipo;
@@ -185,7 +177,7 @@ const Agenda: React.FC = () => {
             })}
           </View>
 
-          {/* Botón agregar */}
+          
           <TouchableOpacity 
             style={[styles.addButton, { backgroundColor: categoriaSeleccionada?.color }]} 
             onPress={agregarTarea}
@@ -196,7 +188,7 @@ const Agenda: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Instrucción de swipe */}
+        
         {tasks.length > 0 && (
           <View style={styles.instructionContainer}>
             <FontAwesome name="hand-o-right" size={14} color="#666" />
@@ -206,7 +198,7 @@ const Agenda: React.FC = () => {
           </View>
         )}
 
-        {/* Lista de tareas */}
+        
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.task_id.toString()}

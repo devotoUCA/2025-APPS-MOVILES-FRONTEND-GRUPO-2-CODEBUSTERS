@@ -1,9 +1,7 @@
-// hooks/useTasks.ts (CÓDIGO COMPLETO Y CORREGIDO)
-
 import { TipoTarea } from '@/components/task';
 import API_CONFIG from '@/config/api';
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux'; // 1. Importa useSelector
+import { useSelector } from 'react-redux';
 
 export interface Task {
   task_id: number;
@@ -17,11 +15,9 @@ export interface Task {
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   
-  // 2. Lee el 'player' (como en settings.tsx)
   const playerId = useSelector((state: any) => state.auth.player?.player_id);
 
   useEffect(() => {
-    console.log("Hooks useTasks: El playerId actual es:", playerId);
   }, [playerId]);
 
   const fetchTasks = async () => {
@@ -36,13 +32,11 @@ export const useTasks = () => {
       const data = await response.json();
       setTasks(data);
     } catch (error) {
-      console.error('Error en fetchTasks:', error);
     }
   };
 
   const addTask = async (titulo: string, tipo: TipoTarea) => {
     if (!playerId) {
-        console.error("Error: No se puede agregar tarea, playerId es undefined.");
         return;
     }
 
@@ -50,8 +44,7 @@ export const useTasks = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 3. ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
-        //    Envía el playerId al backend
+
         body: JSON.stringify({ titulo, tipo, playerId }),
       });
       if (!response.ok) {
@@ -63,7 +56,6 @@ export const useTasks = () => {
       return newTask;
 
     } catch (error) {
-       console.error("Error en addTask:", error); // Esto es lo que ves en tu log
     }
   };
 
@@ -77,7 +69,6 @@ export const useTasks = () => {
       }
       setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
     } catch (error) {
-      console.error("Error en deleteTask:", error);
     }
   };
 

@@ -44,7 +44,7 @@ export default function SignInScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+        
         <View style={styles.header}>
           <Text style={styles.logo}>🌱</Text>
           <Text style={styles.title}>MindGarden</Text>
@@ -53,7 +53,7 @@ export default function SignInScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        
         <View style={styles.form}>
           {isSignUp && (
             <TextInput

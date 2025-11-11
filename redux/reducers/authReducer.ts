@@ -1,5 +1,3 @@
-// redux/reducers/authReducer.ts (CÓDIGO COMPLETO Y CORREGIDO)
-
 import {
   LOGIN_FAILURE,
   LOGIN_PENDING,
@@ -9,15 +7,13 @@ import {
   REGISTER_PENDING,
   REGISTER_SUCCESS,
   RESTORE_SESSION,
-  UPDATE_PLAYER_DATA // 1. La nueva acción que agregamos
+  UPDATE_PLAYER_DATA
 } from '../actionTypes/authActionTypes';
 
-// 2. ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
-//    Esta es la variable 'initialState' que faltaba.
 const initialState = {
   player: null,
   isLoggedIn: false,
-  isLoading: true, // Inicia en 'true' para esperar la restauración
+  isLoading: true, 
   error: null,
 };
 
@@ -37,12 +33,11 @@ export default function authReducer(state = initialState, action: any) {
       return {
         ...state,
         isLoading: false,
-        isLoggedIn: !!action.payload, // Es true si hay payload, false si no
+        isLoggedIn: !!action.payload, 
         player: action.payload,
         error: null,
       };
     
-    // 3. ✅ El nuevo 'case' para actualizar el jugador
     case UPDATE_PLAYER_DATA:
       return {
         ...state,
@@ -62,7 +57,7 @@ export default function authReducer(state = initialState, action: any) {
     case LOGOUT:
       return {
         ...initialState,
-        isLoading: false, // Ya no está cargando
+        isLoading: false, 
       };
     
     default:

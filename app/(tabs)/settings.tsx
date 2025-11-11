@@ -1,5 +1,3 @@
-// app/(tabs)/settings.tsx (CON ADVERTENCIA DE RESET AL CAMBIAR JARDÍN)
-
 import API_CONFIG from '@/config/api';
 import { logout, updatePlayerData } from "@/redux/actions/authActions";
 import React, { useState } from "react";
@@ -23,7 +21,6 @@ const GARDEN_OPTIONS: Option[] = [
   { label: "Valley", value: "valley" },
 ];
 
-// Componente OptionPicker
 function OptionPicker({
   label,
   value,
@@ -102,14 +99,11 @@ export default function SettingsScreen() {
     );
   };
 
-  // ✅ MODIFICADO: Ahora muestra advertencia sobre el reset
   const handleGardenChange = async (newGardenName: string) => {
     if (!player) return;
 
-    // Si es el mismo jardín, no hacer nada
     if (newGardenName === jardin) return;
 
-    // ✅ Mostrar advertencia de que se reseteará
     Alert.alert(
       "⚠️ Cambiar de jardín",
       `Al cambiar a ${newGardenName.toUpperCase()}, el jardín volverá al nivel 1 con 0/3 de progreso.\n\n¿Continuar?`,
@@ -138,7 +132,6 @@ export default function SettingsScreen() {
                 Alert.alert("✅ Jardín actualizado", `Has cambiado a ${newGardenName.toUpperCase()} nivel 1.`);
               }
             } catch (error: any) {
-              console.error("Error al cambiar de jardín:", error);
               Alert.alert("Error", error.message || "No se pudo cambiar el jardín.");
             }
           }
@@ -169,22 +162,21 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
 
-      {player?.player_name && (
-        <View style={styles.userInfo}>
-          <Text style={styles.userInfoLabel}>Nombre:</Text>
-          <Text style={styles.userInfoText}>{player.player_name}</Text>
-        </View>
-      )}
+      <View style={styles.infoSection}>
+        {player?.player_name && (
+          <View style={styles.userInfo}>
+            <Text style={styles.userInfoLabel}>Nombre:</Text>
+            <Text style={styles.userInfoText}>{player.player_name}</Text>
+          </View>
+        )}
 
-      {player?.email && (
-        <View style={styles.userInfo}>
-          <Text style={styles.userInfoLabel}>Email:</Text>
-          <Text style={styles.userInfoText}>{player.email}</Text>
-        </View>
-      )}
-
-      
-
+        {player?.email && (
+          <View style={styles.userInfo}>
+            <Text style={styles.userInfoLabel}>Email:</Text>
+            <Text style={styles.userInfoText}>{player.email}</Text>
+          </View>
+        )}
+      </View>
 
       <OptionPicker
         label="Tipo de jardín"
@@ -207,13 +199,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
     padding: 20,
+    paddingTop: 60,
   },
   title: {
-    fontSize: 22,
-    color: "#00FFAA",
-    fontWeight: "bold",
-    marginBottom: 20,
-    marginTop: 40,
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: -0.5,
   },
   userInfo: {
     backgroundColor: "#1A1A1A",
@@ -315,7 +307,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   logoutBtn: {
-    marginTop: 28,
+    marginTop: 40,
     backgroundColor: "#cd312eff",
     paddingVertical: 12,
     borderRadius: 10,
@@ -335,5 +327,9 @@ const styles = StyleSheet.create({
   resetText: {
     color: "#FFF",
     fontWeight: "bold",
+  },
+  infoSection: {
+    marginTop: 30,
+    marginBottom: 10,
   },
 });

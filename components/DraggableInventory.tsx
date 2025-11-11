@@ -1,11 +1,9 @@
-// components/DraggableInventory.tsx (CÓDIGO COMPLETO Y CORREGIDO)
-
 import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  GestureResponderEvent // 1. ✅ Importa el tipo de evento
-  ,
+  GestureResponderEvent,
+
   Image,
   PanResponder,
   ScrollView,
@@ -26,7 +24,6 @@ export type InventoryItem = {
 type DraggableInventoryProps = {
   inventory: InventoryItem[];
   isOpen: boolean;
-  // 2. ✅ La función onItemDrop es 'async' y devuelve una Promesa
   onItemDrop: (item: InventoryItem, x: number, y: number) => Promise<boolean>;
   gardenBounds: {
     top: number;
@@ -50,7 +47,6 @@ export default function DraggableInventory({
   const dragOpacity = useRef(new Animated.Value(0)).current;
   const dragScale = useRef(new Animated.Value(1)).current;
 
-  // Animar panel de inventario
   React.useEffect(() => {
     Animated.spring(panelAnim, {
       toValue: isOpen ? 1 : 0,
@@ -65,7 +61,6 @@ export default function DraggableInventory({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       
-      // 3. ✅ Añade el tipo 'GestureResponderEvent' a 'evt'
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         const { pageX, pageY } = evt.nativeEvent;
         setDraggingItem(item);
@@ -87,22 +82,19 @@ export default function DraggableInventory({
         ]).start();
       },
 
-      // 4. ✅ Añade el tipo 'GestureResponderEvent' a 'evt'
       onPanResponderMove: (evt: GestureResponderEvent) => {
         const { pageX, pageY } = evt.nativeEvent;
         dragPosition.setValue({ x: pageX - 30, y: pageY - 30 });
       },
 
-      // 5. ✅ Añade el tipo 'GestureResponderEvent' a 'evt' y haz la función 'async'
       onPanResponderRelease: async (evt: GestureResponderEvent) => {
         const { pageX, pageY } = evt.nativeEvent;
         
         if (draggingItem) {
-          // 6. ✅ Usa 'await' porque la función ahora es una Promesa
           const dropSuccess = await onItemDrop(draggingItem, pageX, pageY);
           
           if (dropSuccess) {
-            // Animación de éxito
+            
             Animated.parallel([
               Animated.timing(dragScale, {
                 toValue: 0,
@@ -118,7 +110,7 @@ export default function DraggableInventory({
               resetDrag();
             });
           } else {
-            // Animación de regreso
+            
             Animated.parallel([
               Animated.spring(dragPosition, {
                 toValue: dragStartPosition,
@@ -143,7 +135,7 @@ export default function DraggableInventory({
       },
 
       onPanResponderTerminate: () => {
-        // Cancelar el drag
+        
         Animated.timing(dragOpacity, {
           toValue: 0,
           duration: 200,
@@ -169,7 +161,7 @@ export default function DraggableInventory({
 
   return (
     <>
-      {/* Panel de inventario */}
+      
       <Animated.View 
         style={[
           styles.inventoryPanel,
@@ -215,7 +207,7 @@ export default function DraggableInventory({
         </ScrollView>
       </Animated.View>
 
-      {/* Indicador visual del área de drop */}
+      
       {draggingItem && (
         <View 
           style={[
@@ -231,7 +223,7 @@ export default function DraggableInventory({
         />
       )}
 
-      {/* Item siendo arrastrado */}
+      
       {draggingItem && (
         <Animated.View
           style={[

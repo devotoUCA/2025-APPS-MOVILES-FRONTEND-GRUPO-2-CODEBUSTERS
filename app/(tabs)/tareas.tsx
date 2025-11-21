@@ -27,7 +27,7 @@ const CATEGORIAS = [
   { tipo: "SaludMental", icon: "yoga", libreria: "MaterialCommunityIcons", color: "#9013fe" },
 ] as const;
 
-const Agenda: React.FC = () => {
+const Tarea: React.FC = () => {
   const { tasks, addTask, deleteTask } = useTasks();
   const [input, setInput] = useState("");
   const [tipo, setTipo] = useState<TipoTarea>("Productividad");
@@ -351,4 +351,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Agenda;
+export default Tarea;

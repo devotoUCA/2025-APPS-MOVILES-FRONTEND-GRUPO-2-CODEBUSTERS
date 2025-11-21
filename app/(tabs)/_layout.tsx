@@ -20,11 +20,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="agenda"
+        name="tareas"
         options={{
-          title: "Agenda",
+          title: "Tareas",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" color={color} size={size} />
+            <Ionicons name="checkbox" color={color} size={size} />
           ),
         }}
       />

@@ -46,6 +46,12 @@ const gardenImages: Record<string, any> = {
   valley_5: require("../../assets/Gardens/Valley/valley_5.png"),
 };
 
+const CONSUMABLE_EFFECTS: Record<number, number> = {
+  1: 2, // agua: +2 unidades
+  2: 1, // polvo: +1 unidad
+  3: 3, // fertilizante: +3 unidades
+};
+
 const findGardenProgress = (player: any, gardenId: number) => {
   if (!player || !player.GardenProgress) return null;
   return player.GardenProgress.find((p: any) => p.garden_id === gardenId);
@@ -65,10 +71,12 @@ export default function HomeScreen() {
   const [progress, setProgress] = useState(currentProgress?.progress || 0); 
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [maxLevelReached, setMaxLevelReached] = useState(level >= 5);
+  const [isDragging, setIsDragging] = useState(false); // NUEVO
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const gardenScaleAnim = useRef(new Animated.Value(1)).current;
   const evolveAnim = useRef(new Animated.Value(0)).current;
+  const highlightOpacity = useRef(new Animated.Value(0)).current; // NUEVO
 
   const glowColor = gardenColors[gardenName] || "#FFFFFF";
   const currentKey = `${gardenName}_${level}`;
@@ -102,6 +110,22 @@ export default function HomeScreen() {
     }
   }, [player?.current_garden?.garden_id, currentProgress?.level, currentProgress?.progress]);
 
+  // NUEVO: Animación del highlight cuando se arrastra
+  useEffect(() => {
+    if (isDragging) {
+      Animated.timing(highlightOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(highlightOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isDragging]);
 
   if (!inventoryContext) return null;
   const { inventory, setInventory } = inventoryContext;
@@ -154,16 +178,17 @@ export default function HomeScreen() {
 
       try {
         const consumableId = parseInt(item.id);
-        
+        const progressIncrement = CONSUMABLE_EFFECTS[consumableId] || 1;
         
         let newProgress = 0;
         let levelUp = false;
 
         setProgress((prev:number) => {
-          newProgress = prev + 1;
+          newProgress = prev + progressIncrement;
           
           if (newProgress >= 3) {
             levelUp = true;
+            const remainder = newProgress - 3;
             
             setLevel((currentLevel: number) => { 
               const newLevel = currentLevel + 1;
@@ -171,14 +196,14 @@ export default function HomeScreen() {
               if (currentLevel < 5) {
                 playLevelUpAnimation();
                 
-                saveLevelToBackend(newLevel, gardenId, 0);
+                saveLevelToBackend(newLevel, gardenId, remainder);
                 return newLevel;
               } else {
                 setMaxLevelReached(true);
                 return currentLevel;
               }
             });
-            return 0; 
+            return remainder;
           }
           return newProgress;
         });
@@ -321,6 +346,43 @@ export default function HomeScreen() {
         </Animated.View>
       </View>
 
+      {/* NUEVO: Overlay de highlight cuando se arrastra */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.dragOverlay,
+          {
+            opacity: highlightOpacity,
+          },
+        ]}
+      >
+        {/* Área oscurecida arriba del jardín */}
+        <View style={[styles.darkArea, { height: gardenBounds.top }]} />
+        
+        {/* Fila del jardín */}
+        <View style={{ height: gardenBounds.bottom - gardenBounds.top, flexDirection: 'row' }}>
+          {/* Área oscura izquierda */}
+          <View style={[styles.darkArea, { width: gardenBounds.left }]} />
+          
+          {/* Área del jardín resaltada */}
+          <View
+            style={[
+              styles.highlightArea,
+              {
+                width: gardenBounds.right - gardenBounds.left,
+                borderColor: glowColor,
+              },
+            ]}
+          />
+          
+          {/* Área oscura derecha */}
+          <View style={[styles.darkArea, { flex: 1 }]} />
+        </View>
+        
+        {/* Área oscurecida debajo del jardín */}
+        <View style={[styles.darkArea, { flex: 1 }]} />
+      </Animated.View>
+
       <View style={styles.progressBarContainer}>
         <View
           style={[styles.progressFill, { width: `${(progress / 3) * 100}%` }]}
@@ -345,6 +407,8 @@ export default function HomeScreen() {
         isOpen={inventoryOpen}
         onItemDrop={handleItemDrop}
         gardenBounds={gardenBounds}
+        onDragStart={() => setIsDragging(true)} // NUEVO
+        onDragEnd={() => setIsDragging(false)} // NUEVO
       />
     </View>
   );
@@ -420,5 +484,21 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   inventoryButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  
+  // NUEVO: Estilos para el overlay de drag
+  dragOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
+  },
+  darkArea: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  highlightArea: {
+    borderWidth: 3,
+    borderRadius: 30,
+    borderStyle: 'dashed',
+  },
 });

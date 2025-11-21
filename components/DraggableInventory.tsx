@@ -2,35 +2,53 @@ import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  GestureResponderEvent,
-
   Image,
+  Modal,
   PanResponder,
-  ScrollView,
   StyleSheet,
   Text,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { InventoryItem } from "../contexts/InventoryContext";
 
 const { width, height } = Dimensions.get("window");
 
-export type InventoryItem = {
-  id: string;
-  type: string;
-  quantity: number;
-  image: any;
-};
-
-type DraggableInventoryProps = {
+interface Props {
   inventory: InventoryItem[];
   isOpen: boolean;
-  onItemDrop: (item: InventoryItem, x: number, y: number) => Promise<boolean>;
+  onItemDrop: (
+    item: InventoryItem,
+    x: number,
+    y: number
+  ) => Promise<boolean>;
   gardenBounds: {
     top: number;
     bottom: number;
     left: number;
     right: number;
   };
+  onDragStart?: () => void; // NUEVO
+  onDragEnd?: () => void; // NUEVO
+}
+
+// Información de los consumibles
+const CONSUMABLE_INFO: Record<string, { name: string; description: string; effect: number }> = {
+  "1": {
+    name: "💧 Agua Cristalina",
+    description: "Esencial para la vida. Este líquido vital hidrata profundamente las raíces de tu jardín, permitiendo que absorba nutrientes con mayor eficiencia.",
+    effect: 2
+  },
+  "2": {
+    name: "🦴 Polvo de Huesos",
+    description: "Rico en minerales ancestrales. Los antiguos jardineros lo utilizaban como fuente natural de calcio y fósforo para fortalecer el crecimiento de las plantas.",
+    effect: 1
+  },
+  "3": {
+    name: "🌿 Fertilizante Premium",
+    description: "La fórmula secreta de los maestros jardineros. Una mezcla concentrada de nutrientes que acelera dramáticamente el desarrollo de tu jardín.",
+    effect: 3
+  }
 };
 
 export default function DraggableInventory({
@@ -38,333 +56,362 @@ export default function DraggableInventory({
   isOpen,
   onItemDrop,
   gardenBounds,
-}: DraggableInventoryProps) {
+  onDragStart, // NUEVO
+  onDragEnd, // NUEVO
+}: Props) {
   const [draggingItem, setDraggingItem] = useState<InventoryItem | null>(null);
-  const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
-  
-  const panelAnim = useRef(new Animated.Value(0)).current;
-  const dragPosition = useRef(new Animated.ValueXY()).current;
-  const dragOpacity = useRef(new Animated.Value(0)).current;
-  const dragScale = useRef(new Animated.Value(1)).current;
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  React.useEffect(() => {
-    Animated.spring(panelAnim, {
-      toValue: isOpen ? 1 : 0,
-      friction: 7,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  }, [isOpen]);
+  const panPosition = useRef(new Animated.ValueXY()).current;
 
   const createPanResponder = (item: InventoryItem) => {
+    let startTime = 0;
+    let hasMoved = false;
+
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      
-      onPanResponderGrant: (evt: GestureResponderEvent) => {
-        const { pageX, pageY } = evt.nativeEvent;
-        setDraggingItem(item);
-        setDragStartPosition({ x: pageX - 30, y: pageY - 30 });
-        
-        dragPosition.setValue({ x: pageX - 30, y: pageY - 30 });
-        
-        Animated.parallel([
-          Animated.timing(dragOpacity, {
-            toValue: 1,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.spring(dragScale, {
-            toValue: 1.2,
-            friction: 3,
-            useNativeDriver: true,
-          }),
-        ]).start();
+      onPanResponderGrant: () => {
+        startTime = Date.now();
+        hasMoved = false;
+        panPosition.setOffset({
+          x: (panPosition.x as any)._value,
+          y: (panPosition.y as any)._value,
+        });
       },
-
-      onPanResponderMove: (evt: GestureResponderEvent) => {
-        const { pageX, pageY } = evt.nativeEvent;
-        dragPosition.setValue({ x: pageX - 30, y: pageY - 30 });
-      },
-
-      onPanResponderRelease: async (evt: GestureResponderEvent) => {
-        const { pageX, pageY } = evt.nativeEvent;
-        
-        if (draggingItem) {
-          const dropSuccess = await onItemDrop(draggingItem, pageX, pageY);
-          
-          if (dropSuccess) {
-            
-            Animated.parallel([
-              Animated.timing(dragScale, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-              Animated.timing(dragOpacity, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
-              resetDrag();
-            });
-          } else {
-            
-            Animated.parallel([
-              Animated.spring(dragPosition, {
-                toValue: dragStartPosition,
-                friction: 5,
-                useNativeDriver: true,
-              }),
-              Animated.timing(dragOpacity, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-              }),
-              Animated.spring(dragScale, {
-                toValue: 1,
-                friction: 5,
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
-              resetDrag();
-            });
+      onPanResponderMove: (e, gestureState) => {
+        // Detectar si hubo movimiento significativo
+        if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
+          hasMoved = true;
+          if (!draggingItem) {
+            setDraggingItem(item);
+            onDragStart?.(); // NUEVO: Notificar inicio de drag
           }
+          Animated.event([null, { dx: panPosition.x, dy: panPosition.y }], {
+            useNativeDriver: false,
+          })(e, gestureState);
         }
       },
-
-      onPanResponderTerminate: () => {
+      onPanResponderRelease: async (e, gestureState) => {
+        const timeElapsed = Date.now() - startTime;
         
-        Animated.timing(dragOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
-          resetDrag();
-        });
+        // Si fue un tap rápido sin movimiento, mostrar modal
+        if (!hasMoved && timeElapsed < 200) {
+          setSelectedItem(item);
+          setModalVisible(true);
+          panPosition.flattenOffset();
+          return;
+        }
+
+        // Si hubo movimiento, procesar el drop
+        if (hasMoved && draggingItem) {
+          const dropX = gestureState.moveX;
+          const dropY = gestureState.moveY;
+
+          const success = await onItemDrop(item, dropX, dropY);
+
+          if (success) {
+            onDragEnd?.(); // NUEVO: Notificar fin de drag
+            Animated.spring(panPosition, {
+              toValue: { x: 0, y: 0 },
+              useNativeDriver: false,
+            }).start(() => {
+              setDraggingItem(null);
+              
+              panPosition.setValue({ x: 0, y: 0 });
+            });
+          } else {
+            onDragEnd?.(); // NUEVO: Notificar fin de drag
+            Animated.spring(panPosition, {
+              toValue: { x: 0, y: 0 },
+              friction: 5,
+              useNativeDriver: false,
+            }).start(() => {
+              setDraggingItem(null);
+              panPosition.setValue({ x: 0, y: 0 });
+            });
+          }
+        } else {
+          panPosition.flattenOffset();
+          panPosition.setValue({ x: 0, y: 0 });
+          setDraggingItem(null);
+        }
       },
     });
   };
 
-  const resetDrag = () => {
-    setDraggingItem(null);
-    dragPosition.setValue({ x: 0, y: 0 });
-    dragScale.setValue(1);
-    dragOpacity.setValue(0);
-  };
+  if (!isOpen) return null;
 
-  const translateY = panelAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [150, 0],
-  });
+  const itemInfo = selectedItem ? CONSUMABLE_INFO[selectedItem.id] : null;
 
   return (
     <>
-      
-      <Animated.View 
-        style={[
-          styles.inventoryPanel,
-          {
-            transform: [{ translateY }],
-            opacity: panelAnim,
-          }
-        ]}
-        pointerEvents={isOpen ? "auto" : "none"}
-      >
-        <View style={styles.handle} />
-        <Text style={styles.inventoryTitle}>Inventario</Text>
-        
-        <ScrollView 
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.inventoryContent}
-          scrollEnabled={!draggingItem}
-        >
-          {inventory.filter(item => item.quantity > 0).map(item => {
+      <View style={styles.inventoryContainer}>
+        <Text style={styles.inventoryTitle}>Consumibles</Text>
+        <View style={styles.itemsGrid}>
+          {inventory.map((item) => {
             const panResponder = createPanResponder(item);
             const isDragging = draggingItem?.id === item.id;
-            
+
             return (
-              <View 
-                key={item.id} 
-                style={styles.itemContainer}
-                {...panResponder.panHandlers}
-              >
-                <View style={[styles.item, isDragging && styles.draggingItem]}>
-                  <Image
-                    source={item.image}
-                    style={styles.itemImage}
-                    resizeMode="contain"
-                  />
-                  <View style={styles.quantityBadge}>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
+              <View key={item.id} style={styles.itemSlot}>
+                <Animated.View
+                  {...panResponder.panHandlers}
+                  style={[
+                    styles.itemWrapper,
+                    isDragging && {
+                      transform: [
+                        { translateX: panPosition.x },
+                        { translateY: panPosition.y },
+                      ],
+                      zIndex: 1000,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.itemCard,
+                      isDragging && styles.itemCardDragging,
+                    ]}
+                  >
+                    <Image source={item.image} style={styles.itemImage} />
+                    <View style={styles.quantityBadge}>
+                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                    </View>
                   </View>
-                </View>
+                </Animated.View>
               </View>
             );
           })}
-        </ScrollView>
-      </Animated.View>
+        </View>
+      </View>
 
-      
-      {draggingItem && (
-        <View 
-          style={[
-            styles.dropZone,
-            {
-              top: gardenBounds.top,
-              left: gardenBounds.left,
-              width: gardenBounds.right - gardenBounds.left,
-              height: gardenBounds.bottom - gardenBounds.top,
-            }
-          ]}
-          pointerEvents="none"
-        />
-      )}
-
-      
-      {draggingItem && (
-        <Animated.View
-          style={[
-            styles.draggedItem,
-            {
-              transform: [
-                { translateX: dragPosition.x },
-                { translateY: dragPosition.y },
-                { scale: dragScale },
-              ],
-              opacity: dragOpacity,
-            }
-          ]}
-          pointerEvents="none"
+      {/* Modal informativo */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
         >
-          <Image
-            source={draggingItem.image}
-            style={styles.draggedItemImage}
-            resizeMode="contain"
-          />
-          <View style={styles.draggedQuantityBadge}>
-            <Text style={styles.draggedQuantityText}>{draggingItem.quantity}</Text>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{itemInfo?.name}</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {selectedItem && (
+                <Image source={selectedItem.image} style={styles.modalImage} />
+              )}
+              <Text style={styles.modalDescription}>{itemInfo?.description}</Text>
+              
+              <View style={styles.effectContainer}>
+                <Text style={styles.effectLabel}>Efecto en el jardín:</Text>
+                <View style={styles.effectBadge}>
+                  <Text style={styles.effectText}>+{itemInfo?.effect} progreso</Text>
+                </View>
+              </View>
+
+              <View style={styles.quantityContainer}>
+                <Text style={styles.quantityLabel}>Cantidad disponible:</Text>
+                <Text style={styles.quantityValue}>{selectedItem?.quantity}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Cerrar</Text>
+            </TouchableOpacity>
           </View>
-        </Animated.View>
-      )}
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  inventoryPanel: {
+  inventoryContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 150,
     backgroundColor: "#1a1a1a",
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    paddingTop: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 15,
-  },
-  handle: {
-    position: "absolute",
-    top: 8,
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    backgroundColor: "#444",
-    borderRadius: 2,
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: -4 },
+    shadowRadius: 10,
+    elevation: 10,
   },
   inventoryTitle: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#00FFAA",
+    fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
     marginBottom: 15,
+    textAlign: "center",
   },
-  inventoryContent: {
-    paddingHorizontal: 20,
-    alignItems: "center",
+  itemsGrid: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    gap: 15,
   },
-  itemContainer: {
-    marginHorizontal: 10,
+  itemSlot: {
+    width: 70,
+    height: 70,
   },
-  item: {
-    alignItems: "center",
+  itemWrapper: {
+    width: "100%",
+    height: "100%",
+  },
+  itemCard: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#2a2a2a",
+    borderRadius: 12,
+    padding: 8,
     justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#3a3a3a",
   },
-  draggingItem: {
-    opacity: 0.3,
+  itemCardDragging: {
+    opacity: 0.8,
+    transform: [{ scale: 1.1 }],
+    borderColor: "#00FFAA",
+    shadowColor: "#00FFAA",
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
   },
   itemImage: {
-    width: 60,
-    height: 60,
-    borderWidth: 2,
-    borderColor: "#00FFAA",
-    borderRadius: 10,
-    backgroundColor: "#000",
+    width: 50,
+    height: 50,
+    resizeMode: "contain",
   },
   quantityBadge: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: 4,
+    right: 4,
     backgroundColor: "#00FFAA",
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    minWidth: 22,
+    minWidth: 20,
     alignItems: "center",
   },
   quantityText: {
     color: "#000",
-    fontWeight: "bold",
     fontSize: 12,
+    fontWeight: "bold",
   },
-  dropZone: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "#00FFAA",
-    borderStyle: "dashed",
-    borderRadius: 30,
-    backgroundColor: "rgba(0, 255, 170, 0.05)",
-  },
-  draggedItem: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    zIndex: 1000,
-  },
-  draggedItemImage: {
-    width: 60,
-    height: 60,
-    borderWidth: 3,
-    borderColor: "#00FF66",
-    borderRadius: 10,
-    backgroundColor: "#000",
-    shadowColor: "#00FFAA",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  draggedQuantityBadge: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: "#00FFAA",
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 22,
+  // Estilos del Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
     alignItems: "center",
   },
-  draggedQuantityText: {
-    color: "#000",
+  modalContent: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    padding: 25,
+    width: width * 0.85,
+    maxWidth: 400,
+    borderWidth: 2,
+    borderColor: "#00FFAA",
+    shadowColor: "#00FFAA",
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#2a2a2a",
+    paddingBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 24,
     fontWeight: "bold",
-    fontSize: 12,
+    color: "#00FFAA",
+    textAlign: "center",
+  },
+  modalBody: {
+    alignItems: "center",
+  },
+  modalImage: {
+    width: 100,
+    height: 100,
+    resizeMode: "contain",
+    marginBottom: 20,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: "#ccc",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  effectContainer: {
+    backgroundColor: "#2a2a2a",
+    borderRadius: 12,
+    padding: 15,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  effectLabel: {
+    fontSize: 14,
+    color: "#999",
+    marginBottom: 8,
+  },
+  effectBadge: {
+    backgroundColor: "#00FFAA",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  effectText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  quantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 10,
+  },
+  quantityLabel: {
+    fontSize: 14,
+    color: "#999",
+  },
+  quantityValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#00FFAA",
+  },
+  closeButton: {
+    backgroundColor: "#00FFAA",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

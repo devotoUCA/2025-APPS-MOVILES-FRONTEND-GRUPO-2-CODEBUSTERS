@@ -10,6 +10,8 @@ export interface Task {
   tipo: TipoTarea;
   completed_flag: boolean;
   eliminated_flag: boolean;
+  deadline?: string | null; // ← AGREGAR
+  failed_flag?: boolean; // ← AGREGAR
 }
 
 export const useTasks = () => {
@@ -32,10 +34,11 @@ export const useTasks = () => {
       const data = await response.json();
       setTasks(data);
     } catch (error) {
+      console.error('Error al cargar tareas:', error);
     }
   };
 
-  const addTask = async (titulo: string, tipo: TipoTarea) => {
+  const addTask = async (titulo: string, tipo: TipoTarea, deadline?: Date | null) => {
     if (!playerId) {
         return;
     }
@@ -44,8 +47,12 @@ export const useTasks = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ titulo, tipo, playerId }),
+        body: JSON.stringify({ 
+          titulo, 
+          tipo, 
+          playerId,
+          deadline: deadline ? deadline.toISOString() : null
+        }),
       });
       if (!response.ok) {
          throw new Error('Error al crear tarea');
@@ -56,6 +63,7 @@ export const useTasks = () => {
       return newTask;
 
     } catch (error) {
+      console.error('Error al crear tarea:', error);
     }
   };
 
@@ -69,36 +77,22 @@ export const useTasks = () => {
       }
       setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
     } catch (error) {
+      console.error('Error al eliminar tarea:', error);
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, [playerId]); 
-
   const completeTask = async (taskId: number) => {
-    console.log('=== completeTask llamado ===');
-    console.log('Task ID:', taskId);
-    console.log('URL:', `${API_CONFIG.BASE_URL}/tasks/${taskId}/complete`);
-    
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/${taskId}/complete`, {
         method: 'PUT',
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-      
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${responseText}`);
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
       }
       
-      const data = JSON.parse(responseText);
-      console.log('Parsed data:', data);
-      
+      const data = await response.json();
       setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
     } catch (error) {
       console.error('Error al completar tarea:', error);
@@ -106,5 +100,9 @@ export const useTasks = () => {
     }
   };
 
-  return { tasks, addTask, fetchTasks, deleteTask, completeTask};
+  useEffect(() => {
+    fetchTasks();
+  }, [playerId]); 
+
+  return { tasks, addTask, fetchTasks, deleteTask, completeTask };
 };

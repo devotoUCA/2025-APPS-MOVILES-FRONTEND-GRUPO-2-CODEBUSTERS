@@ -38,11 +38,41 @@ interface TaskProps {
   completada: boolean;
   onToggle: () => void;
   onEliminar: () => void;
+  deadline?: string | null;
 }
 
-const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onEliminar }) => {
+const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onEliminar, deadline }) => {
   const categoryConfig = CATEGORIAS_CONFIG[tipo];
   const swipeableRef = React.useRef<Swipeable>(null);
+
+  // Calcular si está vencida o próxima a vencer
+  const getDeadlineInfo = () => {
+    if (!deadline) return null;
+    
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffMs = deadlineDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    const isOverdue = diffMs < 0;
+    const isUrgent = diffHours > 0 && diffHours <= 24;
+    
+    const formatDate = () => {
+      const day = deadlineDate.getDate().toString().padStart(2, '0');
+      const month = (deadlineDate.getMonth() + 1).toString().padStart(2, '0');
+      const hours = deadlineDate.getHours().toString().padStart(2, '0');
+      const minutes = deadlineDate.getMinutes().toString().padStart(2, '0');
+      return `${day}/${month} ${hours}:${minutes}`;
+    };
+    
+    return {
+      isOverdue,
+      isUrgent,
+      formatted: formatDate()
+    };
+  };
+
+  const deadlineInfo = getDeadlineInfo();
 
   const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const trans = dragX.interpolate({
@@ -106,8 +136,8 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           styles.taskCard,
           { backgroundColor: categoryConfig.color }
         ]}
-      >
         
+      >
         <View style={[styles.iconContainer, { backgroundColor: categoryConfig.colorClaro }]}>
           {categoryConfig.libreria === "FontAwesome" && (
             <FontAwesome name={categoryConfig.icon as any} size={22} color="#FFF" />
@@ -117,15 +147,28 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
           )}
         </View>
 
-        
         <View style={styles.taskContent}>
           <Text style={styles.taskTitle} numberOfLines={2}>
             {titulo}
           </Text>
-          <Text style={styles.taskCategory}>{tipo}</Text>
+          <View style={styles.metadataRow}>
+            <Text style={styles.taskCategory}>{tipo}</Text>
+            {deadlineInfo && (
+              <View style={styles.deadlineBadge}>
+                <FontAwesome 
+                  name="clock-o" 
+                  size={10} 
+                  color="#FFF" 
+                  style={{ marginRight: 4 }} 
+                />
+                <Text style={styles.deadlineText}>
+                  {deadlineInfo.formatted}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        
         <View style={styles.swipeIndicator}>
           <FontAwesome name="angle-left" size={16} color="rgba(255,255,255,0.4)" />
           <FontAwesome name="angle-right" size={16} color="rgba(255,255,255,0.4)" />
@@ -137,11 +180,12 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
 
 const styles = StyleSheet.create({
   taskCard: {
-    height: 85,
+    minHeight: 85,
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
+    paddingVertical: 12,
     marginHorizontal: 20,
     marginBottom: 12,
     shadowColor: "#000",
@@ -166,13 +210,31 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 17,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 6,
     lineHeight: 22,
+  },
+  metadataRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   taskCategory: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 13,
     fontWeight: "500",
+  },
+  deadlineBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  deadlineText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "600",
   },
   swipeIndicator: {
     flexDirection: "row",

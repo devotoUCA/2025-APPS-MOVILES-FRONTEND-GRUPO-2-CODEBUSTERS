@@ -28,6 +28,17 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* ← AGREGAR ESTA SECCIÓN */}
+      <Tabs.Screen
+        name="estadisticas"
+        options={{
+          title: "Stats",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart" color={color} size={size} />
+          ),
+        }}
+      />
+      {/* ← FIN DE LA SECCIÓN A AGREGAR */}
       <Tabs.Screen
         name="settings"
         options={{

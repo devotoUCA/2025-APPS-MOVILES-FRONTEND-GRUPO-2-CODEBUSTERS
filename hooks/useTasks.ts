@@ -76,5 +76,35 @@ export const useTasks = () => {
     fetchTasks();
   }, [playerId]); 
 
-  return { tasks, addTask, fetchTasks, deleteTask };
+  const completeTask = async (taskId: number) => {
+    console.log('=== completeTask llamado ===');
+    console.log('Task ID:', taskId);
+    console.log('URL:', `${API_CONFIG.BASE_URL}/tasks/${taskId}/complete`);
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/${taskId}/complete`, {
+        method: 'PUT',
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${responseText}`);
+      }
+      
+      const data = JSON.parse(responseText);
+      console.log('Parsed data:', data);
+      
+      setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
+    } catch (error) {
+      console.error('Error al completar tarea:', error);
+      throw error;
+    }
+  };
+
+  return { tasks, addTask, fetchTasks, deleteTask, completeTask};
 };

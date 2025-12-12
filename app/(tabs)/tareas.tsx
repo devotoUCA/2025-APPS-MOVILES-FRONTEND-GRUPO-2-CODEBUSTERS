@@ -28,7 +28,7 @@ const CATEGORIAS = [
 ] as const;
 
 const Tarea: React.FC = () => {
-  const { tasks, addTask, deleteTask } = useTasks();
+  const { tasks, addTask, deleteTask, completeTask } = useTasks();
   const [input, setInput] = useState("");
   const [tipo, setTipo] = useState<TipoTarea>("Productividad");
   const inventoryContext = useContext(InventoryContext);
@@ -46,6 +46,10 @@ const Tarea: React.FC = () => {
   };
 
   const handleTaskCompletion = async (id: number) => { 
+    console.log('=== handleTaskCompletion INICIO ===');
+    console.log('Task ID:', id);
+    console.log('Player ID:', player?.player_id);
+    console.log('API Base URL:', API_CONFIG.BASE_URL);
 
     const taskExists = tasks.find(t => t.task_id === id);
     if (!taskExists) return;
@@ -62,19 +66,24 @@ const Tarea: React.FC = () => {
     const random = consumibles[Math.floor(Math.random() * consumibles.length)];
 
     try {
-      
+      // 1. Dar recompensa al inventario
+      console.log('Llamando a inventario...');
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consumableId: random.id, quantity: 1 }),
       });
 
+      console.log('Response status inventario:', response.status);
+      
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Error del backend al dar recompensa');
+        const errorText = await response.text();
+        console.error('Error del servidor (inventario):', errorText);
+        throw new Error(`Error ${response.status} al dar recompensa`);
       }
 
       const data = await response.json();
+      console.log('Respuesta inventario:', data);
       
       if (data.success && data.player) {
         dispatch(updatePlayerData(data.player) as any);
@@ -94,12 +103,15 @@ const Tarea: React.FC = () => {
         }
       });
 
+      // 2. Completar la tarea (marca completed_at y elimina)
+      console.log('Llamando a completeTask...');
+      await completeTask(id);
+
       Alert.alert("¡Tarea completada! 🎉", `Has recibido: ${random.name}`);
-      
-      deleteTask(id);
 
     } catch (error: any) {
-      Alert.alert("Error", "No se pudo completar la tarea. Revisa la consola.");
+      console.error('Error completo:', error);
+      Alert.alert("Error", `No se pudo completar la tarea: ${error.message}`);
     }
   };
 

@@ -19,7 +19,7 @@ type BackendInventoryItem = {
   quantity: number;
   CONSUMABLES: {
     consumable_id: number;
-    consumable_name: string; // ej: "agua"
+    consumable_name: string; 
     consumable_img: string | null;
   }
 }

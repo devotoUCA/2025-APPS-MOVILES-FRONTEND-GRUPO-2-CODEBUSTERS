@@ -59,24 +59,20 @@ const handleTaskCompletion = async (id: number) => {
     }
 
     try {
-      // 1. VERIFICAR SI LA TAREA ESTÁ VENCIDA
       const checkResponse = await fetch(`${API_CONFIG.BASE_URL}/tasks/${id}/is-overdue`);
       if (!checkResponse.ok) throw new Error('Error al verificar deadline');
       
       const checkData = await checkResponse.json();
       
       if (checkData.isOverdue) {
-        // TAREA VENCIDA - Aplicar penalización
         const penaltyResponse = await fetch(`${API_CONFIG.BASE_URL}/tasks/check-overdue/${player.player_id}`);
         if (!penaltyResponse.ok) throw new Error('Error al aplicar penalización');
         
         const penaltyData = await penaltyResponse.json();
         
         if (penaltyData.penaltyApplied && penaltyData.player) {
-          // Actualizar Redux con el jugador penalizado
           dispatch(updatePlayerData(penaltyData.player) as any);
           
-          // Construir mensaje de penalización
           let penaltyMessage = '';
           if (penaltyData.previousLevel > 1) {
             penaltyMessage = `Tu jardín bajó del nivel ${penaltyData.previousLevel} al nivel ${penaltyData.newLevel}`;
@@ -86,17 +82,15 @@ const handleTaskCompletion = async (id: number) => {
           
           Alert.alert(
             '⏰ Tarea Vencida',
-            `No completaste esta tarea a tiempo.\n\n❌ ${penaltyMessage}`,
+            `No completaste esta tarea a tiempo.\n❌ ${penaltyMessage}`,
             [{ text: 'Entendido', style: 'destructive' }]
           );
         }
         
-        // Recargar tareas
         await fetchTasks();
         return;
       }
 
-      // 2. TAREA NO VENCIDA - Dar recompensa normal
       const consumibles = [
         { id: 1, name: "agua", image: require("../../assets/Consumables/water.png") },
         { id: 2, name: "polvo", image: require("../../assets/Consumables/bone_powder.png") },
@@ -104,7 +98,6 @@ const handleTaskCompletion = async (id: number) => {
       ];
       const random = consumibles[Math.floor(Math.random() * consumibles.length)];
 
-      // Dar recompensa al inventario
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,7 +129,6 @@ const handleTaskCompletion = async (id: number) => {
         }
       });
 
-      // Completar la tarea
       await completeTask(id);
 
       Alert.alert("¡Tarea completada! 🎉", `Has recibido: ${random.name}`);
@@ -161,7 +153,6 @@ const handleTaskCompletion = async (id: number) => {
       >
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Mis Tareas</Text>
           <View style={styles.headerBadge}>
@@ -169,7 +160,6 @@ const handleTaskCompletion = async (id: number) => {
           </View>
         </View>
 
-        {/* Input Section */}
         <View style={styles.inputSection}>
           <View style={styles.inputWrapper}>
             <FontAwesome name="pencil" size={18} color="#00FFAA" style={styles.inputIcon} />
@@ -184,7 +174,6 @@ const handleTaskCompletion = async (id: number) => {
             />
           </View>
 
-          {/* Category Selector */}
           <View style={styles.categorySelector}>
             {CATEGORIAS.map((cat) => {
               const isSelected = tipo === cat.tipo;
@@ -220,7 +209,6 @@ const handleTaskCompletion = async (id: number) => {
             })}
           </View>
 
-          {/* Deadline Selector */}
           <TouchableOpacity
             style={styles.deadlineButton}
             onPress={() => setShowDeadlinePicker(true)}
@@ -251,7 +239,6 @@ const handleTaskCompletion = async (id: number) => {
             onSelect={setDeadline}
           />
 
-          {/* Add Button */}
           <TouchableOpacity 
             style={[styles.addButton, { backgroundColor: categoriaSeleccionada?.color }]} 
             onPress={agregarTarea}
@@ -262,7 +249,6 @@ const handleTaskCompletion = async (id: number) => {
           </TouchableOpacity>
         </View>
 
-        {/* Instructions */}
         {tasks.length > 0 && (
           <View style={styles.instructionContainer}>
             <FontAwesome name="hand-o-right" size={14} color="#666" />
@@ -272,7 +258,6 @@ const handleTaskCompletion = async (id: number) => {
           </View>
         )}
 
-        {/* Task List */}
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.task_id.toString()}

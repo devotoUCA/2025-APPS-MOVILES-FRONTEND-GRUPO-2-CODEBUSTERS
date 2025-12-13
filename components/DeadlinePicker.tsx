@@ -1,12 +1,12 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface DeadlinePickerProps {
@@ -28,10 +28,9 @@ const DeadlinePicker: React.FC<DeadlinePickerProps> = ({ visible, onClose, onSel
     
     const dayNum = parseInt(day) || now.getDate();
     const monthNum = parseInt(month) || (currentMonth + 1);
-    const hourNum = parseInt(hour) || 23;
-    const minuteNum = parseInt(minute) || 59;
+    const hourNum = parseInt(hour);
+    const minuteNum = parseInt(minute);
 
-    // Validaciones básicas
     if (dayNum < 1 || dayNum > 31) {
       alert('Día inválido (1-31)');
       return;
@@ -51,7 +50,6 @@ const DeadlinePicker: React.FC<DeadlinePickerProps> = ({ visible, onClose, onSel
 
     const selectedDate = new Date(currentYear, monthNum - 1, dayNum, hourNum, minuteNum);
     
-    // Verificar que la fecha sea futura
     if (selectedDate <= now) {
       alert('La fecha debe ser futura');
       return;
@@ -60,7 +58,6 @@ const DeadlinePicker: React.FC<DeadlinePickerProps> = ({ visible, onClose, onSel
     onSelect(selectedDate);
     onClose();
     
-    // Limpiar campos
     setDay('');
     setMonth('');
     setHour('');

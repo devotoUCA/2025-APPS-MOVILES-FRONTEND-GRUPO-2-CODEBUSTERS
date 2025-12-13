@@ -45,7 +45,6 @@ const Task: React.FC<TaskProps> = ({ titulo, tipo, completada, onToggle, onElimi
   const categoryConfig = CATEGORIAS_CONFIG[tipo];
   const swipeableRef = React.useRef<Swipeable>(null);
 
-  // Calcular si está vencida o próxima a vencer
   const getDeadlineInfo = () => {
     if (!deadline) return null;
     

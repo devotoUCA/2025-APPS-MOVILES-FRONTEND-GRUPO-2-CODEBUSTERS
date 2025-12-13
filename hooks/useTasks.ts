@@ -10,8 +10,8 @@ export interface Task {
   tipo: TipoTarea;
   completed_flag: boolean;
   eliminated_flag: boolean;
-  deadline?: string | null; // ← AGREGAR
-  failed_flag?: boolean; // ← AGREGAR
+  deadline?: string | null; 
+  failed_flag?: boolean; 
 }
 
 export const useTasks = () => {

@@ -28,11 +28,10 @@ interface Props {
     left: number;
     right: number;
   };
-  onDragStart?: () => void; // NUEVO
-  onDragEnd?: () => void; // NUEVO
+  onDragStart?: () => void; 
+  onDragEnd?: () => void; 
 }
 
-// Información de los consumibles
 const CONSUMABLE_INFO: Record<string, { name: string; description: string; effect: number }> = {
   "1": {
     name: "💧 Agua Cristalina",
@@ -56,8 +55,8 @@ export default function DraggableInventory({
   isOpen,
   onItemDrop,
   gardenBounds,
-  onDragStart, // NUEVO
-  onDragEnd, // NUEVO
+  onDragStart, 
+  onDragEnd, 
 }: Props) {
   const [draggingItem, setDraggingItem] = useState<InventoryItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -80,12 +79,12 @@ export default function DraggableInventory({
         });
       },
       onPanResponderMove: (e, gestureState) => {
-        // Detectar si hubo movimiento significativo
+        
         if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
           hasMoved = true;
           if (!draggingItem) {
             setDraggingItem(item);
-            onDragStart?.(); // NUEVO: Notificar inicio de drag
+            onDragStart?.(); 
           }
           Animated.event([null, { dx: panPosition.x, dy: panPosition.y }], {
             useNativeDriver: false,
@@ -95,7 +94,7 @@ export default function DraggableInventory({
       onPanResponderRelease: async (e, gestureState) => {
         const timeElapsed = Date.now() - startTime;
         
-        // Si fue un tap rápido sin movimiento, mostrar modal
+        
         if (!hasMoved && timeElapsed < 200) {
           setSelectedItem(item);
           setModalVisible(true);
@@ -103,7 +102,7 @@ export default function DraggableInventory({
           return;
         }
 
-        // Si hubo movimiento, procesar el drop
+        
         if (hasMoved && draggingItem) {
           const dropX = gestureState.moveX;
           const dropY = gestureState.moveY;
@@ -111,7 +110,7 @@ export default function DraggableInventory({
           const success = await onItemDrop(item, dropX, dropY);
 
           if (success) {
-            onDragEnd?.(); // NUEVO: Notificar fin de drag
+            onDragEnd?.(); 
             Animated.spring(panPosition, {
               toValue: { x: 0, y: 0 },
               useNativeDriver: false,
@@ -121,7 +120,7 @@ export default function DraggableInventory({
               panPosition.setValue({ x: 0, y: 0 });
             });
           } else {
-            onDragEnd?.(); // NUEVO: Notificar fin de drag
+            onDragEnd?.(); 
             Animated.spring(panPosition, {
               toValue: { x: 0, y: 0 },
               friction: 5,
@@ -186,7 +185,7 @@ export default function DraggableInventory({
         </View>
       </View>
 
-      {/* Modal informativo */}
+    
       <Modal
         animationType="fade"
         transparent={true}
@@ -313,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  // Estilos del Modal
+  
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.8)",

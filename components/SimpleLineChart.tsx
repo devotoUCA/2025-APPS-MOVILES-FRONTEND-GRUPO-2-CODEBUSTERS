@@ -16,7 +16,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
   const chartPadding = { left: 35, right: 20, top: 10, bottom: 0 };
   const graphWidth = screenWidth - chartPadding.left - chartPadding.right;
   
-  // Convertir objeto a array y ordenar por fecha - ÚLTIMOS 5 DÍAS
   const dataArray: DataPoint[] = Object.keys(data)
     .sort()
     .slice(-5)
@@ -36,17 +35,13 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
 
   const maxValue = Math.max(...dataArray.map(d => d.count));
   
-  // Asegurar que el máximo sea al menos 4 para tener buena escala
   const roundedMax = Math.max(4, Math.ceil(maxValue));
   
-  // Calcular step para que siempre sean valores enteros
   const steps = 4;
   let stepValue = Math.ceil(roundedMax / steps);
   
-  // Ajustar el máximo real basado en el step para evitar decimales
   const adjustedMax = stepValue * steps;
 
-  // Calcular posiciones X centradas
   const numPoints = dataArray.length;
   const segmentWidth = graphWidth / numPoints;
   const pointOffset = segmentWidth / 2;
@@ -62,7 +57,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
       <Text style={styles.chartTitle}>Últimos 5 días</Text>
       
       <View style={styles.chartContainer}>
-        {/* Grid horizontal y etiquetas Y */}
         {[...Array(steps + 1)].map((_, i) => {
           const value = adjustedMax - (i * stepValue);
           const y = (chartHeight / steps) * i;
@@ -86,9 +80,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
           );
         })}
 
-        {/* Contenedor de gráfico */}
         <View style={[styles.lineContainer, { marginLeft: chartPadding.left }]}>
-          {/* Líneas conectoras */}
           {dataArray.map((point, index) => {
             if (index === 0) return null;
             
@@ -117,13 +109,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
             );
           })}
 
-          {/* Puntos y etiquetas de valor */}
           {dataArray.map((point, index) => {
             const { x, y } = getPointPosition(index, point.count);
 
             return (
               <View key={`point-${index}`}>
-                {/* Glow */}
                 <View 
                   style={[
                     styles.pointGlow,
@@ -133,7 +123,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
                     }
                   ]}
                 />
-                {/* Punto */}
                 <View 
                   style={[
                     styles.point,
@@ -143,7 +132,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
                     }
                   ]}
                 />
-                {/* Valor */}
                 <Text 
                   style={[
                     styles.valueLabel,
@@ -160,7 +148,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({ data }) => {
           })}
         </View>
 
-        {/* Etiquetas del eje X */}
         <View style={[styles.xAxisLabels, { left: chartPadding.left }]}>
           {dataArray.map((point, index) => {
             const { x } = getPointPosition(index, 0);

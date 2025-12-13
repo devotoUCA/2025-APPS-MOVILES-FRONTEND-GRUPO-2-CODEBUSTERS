@@ -28,7 +28,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* ← AGREGAR ESTA SECCIÓN */}
       <Tabs.Screen
         name="estadisticas"
         options={{
@@ -38,7 +37,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* ← FIN DE LA SECCIÓN A AGREGAR */}
       <Tabs.Screen
         name="settings"
         options={{

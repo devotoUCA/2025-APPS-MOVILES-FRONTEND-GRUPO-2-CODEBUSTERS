@@ -4,14 +4,14 @@ import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 const CATEGORIAS_ICONS = {
@@ -33,7 +33,6 @@ const Estadisticas: React.FC = () => {
 
   useFocusEffect(
     React.useCallback(() => {
-      // Refrescar datos cada vez que la pantalla gana foco
       refetch();
     }, [])
   );
@@ -85,13 +84,11 @@ const Estadisticas: React.FC = () => {
           />
         }
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Estadísticas</Text>
           <FontAwesome name="line-chart" size={28} color="#00FFAA" />
         </View>
 
-        {/* Cards de resumen */}
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, { borderColor: '#00FFAA' }]}>
             <FontAwesome name="check-circle" size={32} color="#00FFAA" />
@@ -106,10 +103,8 @@ const Estadisticas: React.FC = () => {
           </View>
         </View>
 
-        {/* Gráfico */}
         <SimpleLineChart data={history.summary} />
 
-        {/* Historial */}
         <View style={styles.historySection}>
           <View style={styles.historySectionHeader}>
             <Text style={styles.historyTitle}>Historial Completo</Text>

@@ -1,3 +1,4 @@
+import DeadlinePicker from "@/components/DeadlinePicker";
 import Task, { TipoTarea } from "@/components/task";
 import API_CONFIG from '@/config/api';
 import { useTasks } from "@/hooks/useTasks";
@@ -28,9 +29,13 @@ const CATEGORIAS = [
 ] as const;
 
 const Tarea: React.FC = () => {
-  const { tasks, addTask, deleteTask } = useTasks();
+  const { tasks, addTask, deleteTask, completeTask, fetchTasks } = useTasks();
+  
   const [input, setInput] = useState("");
   const [tipo, setTipo] = useState<TipoTarea>("Productividad");
+  const [deadline, setDeadline] = useState<Date | null>(null);
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
+  
   const inventoryContext = useContext(InventoryContext);
   const { player } = useSelector((state: any) => state.auth); 
   const dispatch = useDispatch();
@@ -38,15 +43,14 @@ const Tarea: React.FC = () => {
   if (!inventoryContext) return null;
   const { inventory, setInventory } = inventoryContext;
 
-
   const agregarTarea = async () => {
     if (input.trim() === "") return;
-    await addTask(input, tipo);
+    await addTask(input, tipo, deadline);
     setInput("");
+    setDeadline(null);
   };
 
-  const handleTaskCompletion = async (id: number) => { 
-
+const handleTaskCompletion = async (id: number) => { 
     const taskExists = tasks.find(t => t.task_id === id);
     if (!taskExists) return;
 
@@ -54,24 +58,55 @@ const Tarea: React.FC = () => {
       return;
     }
 
-    const consumibles = [
-      { id: 1, name: "agua", image: require("../../assets/Consumables/water.png") },
-      { id: 2, name: "polvo", image: require("../../assets/Consumables/bone_powder.png") },
-      { id: 3, name: "fertilizante", image: require("../../assets/Consumables/fertilizer.png") }
-    ];
-    const random = consumibles[Math.floor(Math.random() * consumibles.length)];
-
     try {
+      const checkResponse = await fetch(`${API_CONFIG.BASE_URL}/tasks/${id}/is-overdue`);
+      if (!checkResponse.ok) throw new Error('Error al verificar deadline');
       
+      const checkData = await checkResponse.json();
+      
+      if (checkData.isOverdue) {
+        const penaltyResponse = await fetch(`${API_CONFIG.BASE_URL}/tasks/check-overdue/${player.player_id}`);
+        if (!penaltyResponse.ok) throw new Error('Error al aplicar penalización');
+        
+        const penaltyData = await penaltyResponse.json();
+        
+        if (penaltyData.penaltyApplied && penaltyData.player) {
+          dispatch(updatePlayerData(penaltyData.player) as any);
+          
+          let penaltyMessage = '';
+          if (penaltyData.previousLevel > 1) {
+            penaltyMessage = `Tu jardín bajó del nivel ${penaltyData.previousLevel} al nivel ${penaltyData.newLevel}`;
+          } else {
+            penaltyMessage = `Tu jardín se ha reseteado a nivel 1 (0% progreso)`;
+          }
+          
+          Alert.alert(
+            '⏰ Tarea Vencida',
+            `No completaste esta tarea a tiempo.\n❌ ${penaltyMessage}`,
+            [{ text: 'Entendido', style: 'destructive' }]
+          );
+        }
+        
+        await fetchTasks();
+        return;
+      }
+
+      const consumibles = [
+        { id: 1, name: "agua", image: require("../../assets/Consumables/water.png") },
+        { id: 2, name: "polvo", image: require("../../assets/Consumables/bone_powder.png") },
+        { id: 3, name: "fertilizante", image: require("../../assets/Consumables/fertilizer.png") }
+      ];
+      const random = consumibles[Math.floor(Math.random() * consumibles.length)];
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/garden/player/${player.player_id}/inventory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consumableId: random.id, quantity: 1 }),
       });
-
+      
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Error del backend al dar recompensa');
+        const errorText = await response.text();
+        throw new Error(`Error al dar recompensa`);
       }
 
       const data = await response.json();
@@ -94,19 +129,19 @@ const Tarea: React.FC = () => {
         }
       });
 
+      await completeTask(id);
+
       Alert.alert("¡Tarea completada! 🎉", `Has recibido: ${random.name}`);
-      
-      deleteTask(id);
 
     } catch (error: any) {
-      Alert.alert("Error", "No se pudo completar la tarea. Revisa la consola.");
+      console.error('Error completo:', error);
+      Alert.alert("Error", `No se pudo completar la tarea: ${error.message}`);
     }
   };
 
   const handleTaskDelete = async (id: number) => {
     await deleteTask(id);
   };
-
 
   const categoriaSeleccionada = CATEGORIAS.find(c => c.tipo === tipo);
 
@@ -118,7 +153,6 @@ const Tarea: React.FC = () => {
       >
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         
-        
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Mis Tareas</Text>
           <View style={styles.headerBadge}>
@@ -126,7 +160,6 @@ const Tarea: React.FC = () => {
           </View>
         </View>
 
-        
         <View style={styles.inputSection}>
           <View style={styles.inputWrapper}>
             <FontAwesome name="pencil" size={18} color="#00FFAA" style={styles.inputIcon} />
@@ -141,7 +174,6 @@ const Tarea: React.FC = () => {
             />
           </View>
 
-          
           <View style={styles.categorySelector}>
             {CATEGORIAS.map((cat) => {
               const isSelected = tipo === cat.tipo;
@@ -177,7 +209,36 @@ const Tarea: React.FC = () => {
             })}
           </View>
 
-          
+          <TouchableOpacity
+            style={styles.deadlineButton}
+            onPress={() => setShowDeadlinePicker(true)}
+            activeOpacity={0.7}
+          >
+            <FontAwesome name="clock-o" size={18} color={deadline ? "#00FFAA" : "#666"} />
+            <Text style={[styles.deadlineButtonText, deadline && styles.deadlineSet]}>
+              {deadline 
+                ? `Límite: ${deadline.getDate()}/${deadline.getMonth() + 1} ${deadline.getHours()}:${deadline.getMinutes().toString().padStart(2, '0')}`
+                : 'Sin fecha límite'}
+            </Text>
+            {deadline && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setDeadline(null);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <FontAwesome name="times-circle" size={18} color="#FF3B30" />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+
+          <DeadlinePicker
+            visible={showDeadlinePicker}
+            onClose={() => setShowDeadlinePicker(false)}
+            onSelect={setDeadline}
+          />
+
           <TouchableOpacity 
             style={[styles.addButton, { backgroundColor: categoriaSeleccionada?.color }]} 
             onPress={agregarTarea}
@@ -188,7 +249,6 @@ const Tarea: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        
         {tasks.length > 0 && (
           <View style={styles.instructionContainer}>
             <FontAwesome name="hand-o-right" size={14} color="#666" />
@@ -198,7 +258,6 @@ const Tarea: React.FC = () => {
           </View>
         )}
 
-        
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.task_id.toString()}
@@ -208,7 +267,8 @@ const Tarea: React.FC = () => {
               tipo={item.tipo}
               completada={item.completed_flag}
               onToggle={() => handleTaskCompletion(item.task_id)}
-              onEliminar={() => handleTaskDelete(item.task_id)} 
+              onEliminar={() => handleTaskDelete(item.task_id)}
+              deadline={item.deadline}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -297,6 +357,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#2A2A2A",
+  },
+  deadlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    gap: 10,
+  },
+  deadlineButtonText: {
+    flex: 1,
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deadlineSet: {
+    color: '#00FFAA',
   },
   addButton: {
     flexDirection: "row",

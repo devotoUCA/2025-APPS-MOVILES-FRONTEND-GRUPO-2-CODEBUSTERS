@@ -10,6 +10,8 @@ export interface Task {
   tipo: TipoTarea;
   completed_flag: boolean;
   eliminated_flag: boolean;
+  deadline?: string | null; 
+  failed_flag?: boolean; 
 }
 
 export const useTasks = () => {
@@ -32,10 +34,11 @@ export const useTasks = () => {
       const data = await response.json();
       setTasks(data);
     } catch (error) {
+      console.error('Error al cargar tareas:', error);
     }
   };
 
-  const addTask = async (titulo: string, tipo: TipoTarea) => {
+  const addTask = async (titulo: string, tipo: TipoTarea, deadline?: Date | null) => {
     if (!playerId) {
         return;
     }
@@ -44,8 +47,12 @@ export const useTasks = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ titulo, tipo, playerId }),
+        body: JSON.stringify({ 
+          titulo, 
+          tipo, 
+          playerId,
+          deadline: deadline ? deadline.toISOString() : null
+        }),
       });
       if (!response.ok) {
          throw new Error('Error al crear tarea');
@@ -56,6 +63,7 @@ export const useTasks = () => {
       return newTask;
 
     } catch (error) {
+      console.error('Error al crear tarea:', error);
     }
   };
 
@@ -69,6 +77,26 @@ export const useTasks = () => {
       }
       setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
     } catch (error) {
+      console.error('Error al eliminar tarea:', error);
+    }
+  };
+
+  const completeTask = async (taskId: number) => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tasks/${taskId}/complete`, {
+        method: 'PUT',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      setTasks((prevTasks) => prevTasks.filter(task => task.task_id !== taskId));
+    } catch (error) {
+      console.error('Error al completar tarea:', error);
+      throw error;
     }
   };
 
@@ -76,5 +104,5 @@ export const useTasks = () => {
     fetchTasks();
   }, [playerId]); 
 
-  return { tasks, addTask, fetchTasks, deleteTask };
+  return { tasks, addTask, fetchTasks, deleteTask, completeTask };
 };

@@ -47,9 +47,9 @@ const gardenImages: Record<string, any> = {
 };
 
 const CONSUMABLE_EFFECTS: Record<number, number> = {
-  1: 2, // agua: +2 unidades
-  2: 1, // polvo: +1 unidad
-  3: 3, // fertilizante: +3 unidades
+  1: 2, 
+  2: 1, 
+  3: 3, 
 };
 
 const findGardenProgress = (player: any, gardenId: number) => {
@@ -76,7 +76,7 @@ export default function HomeScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const gardenScaleAnim = useRef(new Animated.Value(1)).current;
   const evolveAnim = useRef(new Animated.Value(0)).current;
-  const highlightOpacity = useRef(new Animated.Value(0)).current; // NUEVO
+  const highlightOpacity = useRef(new Animated.Value(0)).current; 
 
   const glowColor = gardenColors[gardenName] || "#FFFFFF";
   const currentKey = `${gardenName}_${level}`;
@@ -110,7 +110,7 @@ export default function HomeScreen() {
     }
   }, [player?.current_garden?.garden_id, currentProgress?.level, currentProgress?.progress]);
 
-  // NUEVO: Animación del highlight cuando se arrastra
+ 
   useEffect(() => {
     if (isDragging) {
       Animated.timing(highlightOpacity, {
@@ -130,7 +130,6 @@ export default function HomeScreen() {
   if (!inventoryContext) return null;
   const { inventory, setInventory } = inventoryContext;
   
-  // --- Animaciones ---
   const playSuccessAnimation = () => { 
     Animated.sequence([
       Animated.parallel([
@@ -346,7 +345,6 @@ export default function HomeScreen() {
         </Animated.View>
       </View>
 
-      {/* NUEVO: Overlay de highlight cuando se arrastra */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -356,15 +354,12 @@ export default function HomeScreen() {
           },
         ]}
       >
-        {/* Área oscurecida arriba del jardín */}
         <View style={[styles.darkArea, { height: gardenBounds.top }]} />
         
-        {/* Fila del jardín */}
         <View style={{ height: gardenBounds.bottom - gardenBounds.top, flexDirection: 'row' }}>
-          {/* Área oscura izquierda */}
+
           <View style={[styles.darkArea, { width: gardenBounds.left }]} />
           
-          {/* Área del jardín resaltada */}
           <View
             style={[
               styles.highlightArea,
@@ -375,11 +370,9 @@ export default function HomeScreen() {
             ]}
           />
           
-          {/* Área oscura derecha */}
           <View style={[styles.darkArea, { flex: 1 }]} />
         </View>
         
-        {/* Área oscurecida debajo del jardín */}
         <View style={[styles.darkArea, { flex: 1 }]} />
       </Animated.View>
 
@@ -407,8 +400,8 @@ export default function HomeScreen() {
         isOpen={inventoryOpen}
         onItemDrop={handleItemDrop}
         gardenBounds={gardenBounds}
-        onDragStart={() => setIsDragging(true)} // NUEVO
-        onDragEnd={() => setIsDragging(false)} // NUEVO
+        onDragStart={() => setIsDragging(true)} 
+        onDragEnd={() => setIsDragging(false)} 
       />
     </View>
   );
@@ -484,7 +477,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   inventoryButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  // NUEVO: Estilos para el overlay de drag
+
   dragOverlay: {
     position: 'absolute',
     top: 0,
